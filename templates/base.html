@@ -136,6 +136,24 @@
   </div>
 </div>
 
+<nav class="mobile-bottom-nav" aria-label="Primary navigation">
+  <a href="{{ url_for('index') }}" class="mobile-nav-item {% if active == 'index' %}active{% endif %}" {% if active == 'index' %}aria-current="page"{% endif %}>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Home</span>
+  </a>
+  <a href="{{ url_for('index') }}#members" class="mobile-nav-item">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20v-1.4A4.6 4.6 0 0 1 8.1 14h1.8a4.6 4.6 0 0 1 4.6 4.6V20zM16 5.2a3.1 3.1 0 0 1 0 5.9M17 14.2a4.5 4.5 0 0 1 3.5 4.4V20h-3"/></svg><span>People</span>
+  </a>
+  <a href="{{ url_for('stats_page', mid=member.id) if member is defined and member else url_for('index') }}" class="mobile-nav-item {% if request.endpoint == 'stats_page' %}active{% endif %}" {% if request.endpoint == 'stats_page' %}aria-current="page"{% endif %}>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h17M8 15l3-4 3 2 5-7"/></svg><span>Trends</span>
+  </a>
+  <a href="{{ url_for('dashboard', mid=member.id) ~ '#history' if member is defined and member else url_for('index') ~ '#members' }}" class="mobile-nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}" {% if request.endpoint == 'dashboard' %}aria-current="page"{% endif %}>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14a1 1 0 0 1 1 1v15H4V5a1 1 0 0 1 1-1zM8 8h8M8 12h8M8 16h5"/></svg><span>Records</span>
+  </a>
+  <a href="{{ url_for('settings', section='preferences') }}" class="mobile-nav-item {% if request.endpoint == 'settings' %}active{% endif %}" {% if request.endpoint == 'settings' %}aria-current="page"{% endif %}>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.5 2.6-1.7-.7a8 8 0 0 1-1.7 1l-.3 1.9h-3l-.3-1.9a8 8 0 0 1-1.7-1l-1.7.7-1.5-2.6 1.5-1.2a7 7 0 0 1 0-2l-1.5-1.2L7 9.2l1.7.7a8 8 0 0 1 1.7-1l.3-1.9h3l.3 1.9a8 8 0 0 1 1.7 1l1.7-.7 1.5 2.6-1.5 1.2a7 7 0 0 1 0 2z"/></svg><span>More</span>
+  </a>
+</nav>
+
 <script>
 (function(){
   var body=document.body,
