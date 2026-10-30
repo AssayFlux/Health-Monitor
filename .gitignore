@@ -1,0 +1,27 @@
+# Python bytecode and virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime databases and local instance data
+*.db
+*.sqlite
+*.sqlite3
+instance/
+
+# User-uploaded branding and files
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Local logs and operating-system files
+*.log
+.DS_Store
+Thumbs.db
