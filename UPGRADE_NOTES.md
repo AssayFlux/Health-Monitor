@@ -20,8 +20,8 @@ The grade is a transparent monitoring index based on recorded observations and c
 
 The report also includes observed trajectories and a clearly labelled 30-day mathematical extrapolation where enough data exist. This is not a medical prediction or diagnosis.
 
-## Existing data
-The existing `health.db` is retained. The new diagnostic table is created in the included database and is also protected by `db.create_all()` for fresh deployments.
+## Database and fresh deployments
+The repository does not include a patient database. On startup, `db.create_all()` creates the required empty schema in the configured SQLite database. Keep runtime database files and backups out of version control; `.gitignore` excludes local database files.
 
 
 ## Final graph/weight consistency patch — 2026-09-26
