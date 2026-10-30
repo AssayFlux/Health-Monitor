@@ -146,8 +146,8 @@
   <a href="{{ url_for('stats_page', mid=member.id) if member is defined and member else url_for('index') }}" class="mobile-nav-item {% if request.endpoint == 'stats_page' %}active{% endif %}" {% if request.endpoint == 'stats_page' %}aria-current="page"{% endif %}>
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h17M8 15l3-4 3 2 5-7"/></svg><span>Trends</span>
   </a>
-  <a href="{{ url_for('dashboard', mid=member.id) ~ '#history' if member is defined and member else url_for('index') ~ '#members' }}" class="mobile-nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}" {% if request.endpoint == 'dashboard' %}aria-current="page"{% endif %}>
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14a1 1 0 0 1 1 1v15H4V5a1 1 0 0 1 1-1zM8 8h8M8 12h8M8 16h5"/></svg><span>Records</span>
+  <a href="{{ url_for('dashboard', mid=member.id) ~ '#entry' if member is defined and member else url_for('index') ~ '#add-member' }}" class="mobile-nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}" {% if request.endpoint == 'dashboard' %}aria-current="page"{% endif %}>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Add</span>
   </a>
   <a href="{{ url_for('settings', section='preferences') }}" class="mobile-nav-item {% if request.endpoint == 'settings' %}active{% endif %}" {% if request.endpoint == 'settings' %}aria-current="page"{% endif %}>
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.5 2.6-1.7-.7a8 8 0 0 1-1.7 1l-.3 1.9h-3l-.3-1.9a8 8 0 0 1-1.7-1l-1.7.7-1.5-2.6 1.5-1.2a7 7 0 0 1 0-2l-1.5-1.2L7 9.2l1.7.7a8 8 0 0 1 1.7-1l.3-1.9h3l.3 1.9a8 8 0 0 1 1.7 1l1.7-.7 1.5 2.6-1.5 1.2a7 7 0 0 1 0 2z"/></svg><span>More</span>
