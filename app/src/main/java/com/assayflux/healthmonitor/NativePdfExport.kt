@@ -40,7 +40,7 @@ object NativePdfExport {
         }
         fun line(text: String, paint: Paint, indent: Float = 0f) {
             val maxWidth = pageWidth - margin * 2 - indent
-            val words = text.replace('\\n', ' ').split(Regex("\\s+"))
+            val words = text.replace("\n", " ").split(Regex("\\s+"))
             var current = ""
             for (word in words) {
                 val candidate = if (current.isEmpty()) word else "$current $word"
