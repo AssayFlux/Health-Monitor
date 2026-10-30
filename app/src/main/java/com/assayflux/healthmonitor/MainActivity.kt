@@ -39,9 +39,20 @@ import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 import org.json.JSONObject
 
-val Ivory=Color(0xFFF3EFE5); val Cream=Color(0xFFFAF8F2)
-val Forest=Color(0xFF34483E); val Sage=Color(0xFFA9B19F)
-val Clay=Color(0xFFA16F5D); val Ink=Color(0xFF302F29)
+private data class VintagePalette(val id:String,val name:String,val ivory:Color,val cream:Color,val forest:Color,val sage:Color,val clay:Color,val ink:Color)
+private val vintagePalettes=listOf(
+ VintagePalette("botanical","Antique Botanical",Color(0xFFF5F0E4),Color(0xFFE7DDC8),Color(0xFF35483A),Color(0xFF66745B),Color(0xFFB18A55),Color(0xFF302F29)),
+ VintagePalette("apothecary","French Apothecary",Color(0xFFF4EBDD),Color(0xFFDED0B9),Color(0xFF783F45),Color(0xFF778795),Color(0xFFA58B68),Color(0xFF302F29)),
+ VintagePalette("terracotta","Heritage Olive & Terracotta",Color(0xFFF3EBDD),Color(0xFFDCCBB1),Color(0xFF493D32),Color(0xFF73734D),Color(0xFFA65F48),Color(0xFF302F29)),
+ VintagePalette("rose","Victorian Rose & Parchment",Color(0xFFF6EFE6),Color(0xFFE5D7CA),Color(0xFF714B50),Color(0xFFB98783),Color(0xFF9A805C),Color(0xFF302F29))
+)
+private var activeVintagePalette by mutableStateOf(vintagePalettes.first())
+private val Ivory get()=activeVintagePalette.ivory
+private val Cream get()=activeVintagePalette.cream
+private val Forest get()=activeVintagePalette.forest
+private val Sage get()=activeVintagePalette.sage
+private val Clay get()=activeVintagePalette.clay
+private val Ink get()=activeVintagePalette.ink
 
 class HealthDb(c:Context, passphrase:ByteArray):SQLiteOpenHelper(c,"health_monitor.db",passphrase,null,5,0,null,null,false){
  override fun onCreate(d:SQLiteDatabase){
@@ -155,7 +166,24 @@ private fun AuthenticatedDatabaseHost() {
     "Reports"->LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){item{ButtonRow("Add laboratory report"){dialog="lab"}};items(labs){r->RecordCard("${r[1]} · ${r[2]}",r[3])};item{SectionTitle("MEDICINES")};item{ButtonRow("Add medicine"){dialog="medicine"}};items(meds){r->RecordCard("${r[2]} · ${r[1]}","${r[3]} · Started ${r[4]}")}}
     "Analytics"->AnalyticsDashboard(db,refresh)
     "Reminders"->ReminderManagementScreen(db,refresh){refresh++}
-    else->Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("Settings & privacy",fontSize=23.sp,fontWeight=FontWeight.SemiBold);RecordCard("On-device database","Health records are stored locally in the app database.");RecordCard("Calculation engine","Python 3.11 embedded with Chaquopy.");RecordCard("Clinical note","Reference ranges are informational and do not provide a diagnosis. Follow the reporting laboratory's interval and clinician guidance.")}
+    else->Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+     Text("Settings & privacy",fontSize=23.sp,fontWeight=FontWeight.SemiBold)
+     SectionTitle("VINTAGE COLOUR PALETTE")
+     Text("Choose a heritage colour story. Your selection updates the app immediately.",color=Ink.copy(.7f),fontSize=13.sp)
+     vintagePalettes.forEach{palette->
+      Card(colors=CardDefaults.cardColors(containerColor=if(activeVintagePalette.id==palette.id)palette.cream else Cream),shape=RoundedCornerShape(18.dp)){
+       Row(Modifier.fillMaxWidth().clickable{activeVintagePalette=palette}.padding(14.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){
+        Row(horizontalArrangement=Arrangement.spacedBy(4.dp)){listOf(palette.ivory,palette.cream,palette.forest,palette.sage,palette.clay).forEach{swatch->Surface(color=swatch,shape=RoundedCornerShape(6.dp),modifier=Modifier.size(22.dp)){} }}
+        Column(Modifier.weight(1f)){Text(palette.name,color=palette.ink,fontWeight=FontWeight.SemiBold);Text("Warm paper · heritage accents",color=palette.ink.copy(.7f),fontSize=11.sp)}
+        RadioButton(selected=activeVintagePalette.id==palette.id,onClick={activeVintagePalette=palette})
+       }
+      }
+     }
+     RecordCard("Surface finish","Subtle paper-like warmth with clean, softly rounded cards and quiet borders.")
+     RecordCard("On-device database","Health records are stored locally in the app database.")
+     RecordCard("Calculation engine","Python 3.11 embedded with Chaquopy.")
+     RecordCard("Clinical note","Reference ranges are informational and do not provide a diagnosis. Follow the reporting laboratory's interval and clinician guidance.")
+    }
    }
   }
  }
