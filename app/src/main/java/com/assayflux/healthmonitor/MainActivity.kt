@@ -63,7 +63,7 @@ class HealthDb(c:Context):SQLiteOpenHelper(c,"health_monitor.db",null,3){
 }
 
 class MainActivity:ComponentActivity(){
- override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);if(!Python.isStarted())Python.start(AndroidPlatform(this));val db=HealthDb(this);setContent{MaterialTheme(colorScheme=lightColorScheme(primary=Forest,background=Ivory,surface=Cream,onSurface=Ink,secondary=Clay)){HealthApp(db)}}}
+ override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);if(!Python.isStarted())Python.start(AndroidPlatform(this));val db=HealthDb(this);setContent{MaterialTheme(colorScheme=lightColorScheme(primary=Forest,background=Ivory,surface=Cream,onSurface=Ink,secondary=Clay)){LocalAuthGate { HealthApp(db) }}}}
 }
 @Composable private fun HealthApp(db:HealthDb){
  var tab by remember{mutableStateOf("Home")};var refresh by remember{mutableIntStateOf(0)};var dialog by remember{mutableStateOf("")}
