@@ -30,10 +30,12 @@ class EncryptedDatabaseMigrationTest {
         }
         val key = ByteArray(32).also(SecureRandom()::nextBytes)
         EncryptedDatabaseMigration.migrateIfNeeded(isolated, key)
-        assertFalse("The plaintext source should be replaced", FrameworkDb.openDatabase(source.absolutePath, null, FrameworkDb.OPEN_READONLY).use { db ->
-            try { db.rawQuery("SELECT name FROM members", null).use { it.moveToFirst() && it.getString(0) == "Test Member" } }
-            catch (_: Exception) { false }
-        })
+        val plaintextReadable = try {
+            FrameworkDb.openDatabase(source.absolutePath, null, FrameworkDb.OPEN_READONLY).use { db ->
+                db.rawQuery("SELECT name FROM members", null).use { it.moveToFirst() && it.getString(0) == "Test Member" }
+            }
+        } catch (_: Exception) { false }
+        assertFalse("The encrypted database must not be readable as plaintext", plaintextReadable)
         CipherDb.openDatabase(source.absolutePath, key, null, CipherDb.OPEN_READONLY, null).use { encrypted ->
             val count = encrypted.rawQuery("SELECT COUNT(*) FROM members", null).use { it.moveToFirst(); it.getInt(0) }
             assertEquals(1, count)
