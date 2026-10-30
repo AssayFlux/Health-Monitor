@@ -30,5 +30,10 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.4")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
+    implementation("androidx.core:core-ktx:1.17.0")
+    implementation("androidx.biometric:biometric:1.2.0-alpha05")
+    implementation("androidx.work:work-runtime-ktx:2.10.5")
+    implementation("net.zetetic:sqlcipher-android:4.19.1@aar")
+    implementation("androidx.sqlite:sqlite:2.7.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
