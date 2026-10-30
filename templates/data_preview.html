@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% set active = 'settings' %}
+{% block title %}{{ title }}{% endblock %}
+{% block pagetitle %}{{ title }}{% endblock %}
+{% block actions %}
+  {% if kind == 'vitals' %}
+    <a class="btn" href="{{ url_for('export_vitals_csv') }}">Download CSV</a>
+  {% elif kind == 'labs' %}
+    <a class="btn" href="{{ url_for('export_labs_csv') }}">Download CSV</a>
+  {% endif %}
+  <button onclick="window.print()">Print</button>
+{% endblock %}
+
+{% block body %}
+
+<section class="card">
+  <h2>Preview &mdash; {{ rows|length }} records</h2>
+  <p class="hint">
+    This is exactly what will be exported. Review the data, then use the Download button top-right.
+  </p>
+
+  {% if kind == 'vitals' %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th>Timestamp</th>
+            {% for f in vital_fields %}<th>{{ friendly.get(f, f) }}</th>{% endfor %}
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td>{{ r.member.name }}</td>
+            <td>{{ r.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+            {% for f in vital_fields %}<td>{{ getattr(r, f) if getattr(r, f) is not none else '' }}</td>{% endfor %}
+            <td>{{ r.notes or '' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="{{ vital_fields|length + 3 }}" class="hint">No vitals recorded.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+  {% if kind == 'labs' %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th>Date</th>
+            <th>Lab</th>
+            {% for f in lab_fields %}<th>{{ friendly.get(f, f) }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td>{{ r.member.name }}</td>
+            <td>{{ r.date.strftime('%Y-%m-%d') }}</td>
+            <td>{{ r.lab_name or '' }}</td>
+            {% for f in lab_fields %}<td>{{ getattr(r, f) if getattr(r, f) is not none else '' }}</td>{% endfor %}
+          </tr>
+          {% else %}
+          <tr><td colspan="{{ lab_fields|length + 3 }}" class="hint">No lab results recorded.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+  {% if kind == 'medicines' %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th>Medicine</th>
+            <th>Dose</th>
+            <th>Started</th>
+            <th>Ended</th>
+            <th>Status</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td>{{ r.member.name }}</td>
+            <td>{{ r.name }}</td>
+            <td>{{ r.dose or '' }}</td>
+            <td>{{ r.started.strftime('%Y-%m-%d') if r.started else '' }}</td>
+            <td>{{ r.ended.strftime('%Y-%m-%d') if r.ended else '' }}</td>
+            <td>{{ 'Active' if r.is_active else 'Discontinued' }}</td>
+            <td>{{ r.notes or '' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="hint">No medicines recorded.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</section>
+
+{% endblock %}

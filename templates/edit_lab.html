@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+{% set active = 'dashboard' %}
+{% block title %}Edit lab — {{ member.name }}{% endblock %}
+{% block pagetitle %}Edit lab result{% endblock %}
+
+{% block body %}
+<div class="v2-page">
+
+  <div class="v2-member-header">
+    <div class="v2-mh-left">
+      <div class="v2-mh-avatar">{{ member.emoji or (member.name[0]|upper) }}</div>
+      <div class="v2-mh-info">
+        <h1>Edit lab result</h1>
+        <div class="v2-mh-meta">{{ member.name }} &middot; {{ date_str }}</div>
+      </div>
+    </div>
+    <div class="v2-mh-actions">
+      <a class="v2-btn" href="{{ url_for('dashboard', mid=member.id) }}">Back to dashboard</a>
+    </div>
+  </div>
+
+  <div class="v2-card">
+    <h2>Update lab entry</h2>
+    <p class="v2-hint">
+      Fields marked <b>(auto)</b> are calculated automatically when left blank
+      &mdash; VLDL, Non-HDL, LDL/HDL, TC/HDL, AIP, eGFR, indirect bilirubin,
+      globulin, A/G ratio, transferrin saturation, MCV, MCH, MCHC, HOMA-IR,
+      HOMA-Beta. Leave them blank if you want the app to compute them, or
+      enter your lab value to override.
+    </p>
+
+    {% macro ef(key, label) -%}
+      <label>
+        <span class="v2-field-name">{{ label }}</span>
+        {% if units and units.get(key) %}<span class="v2-field-unit">{{ units.get(key) }}</span>{% endif %}
+        <input type="number" step="0.01" name="{{ key }}"
+               value="{{ lab[key] if lab[key] is not none else '' }}"
+               placeholder="{{ units.get(key) if units and units.get(key) else '' }}">
+      </label>
+    {%- endmacro %}
+
+    <form action="{{ url_for('edit_lab', mid=member.id, lab_id=lab.id) }}" method="post">
+
+      <div class="v2-form v2-lab-meta">
+        <label>Date of report <input type="date" name="lab_date" value="{{ date_str }}"></label>
+        <label>Lab or hospital <input name="lab_name" value="{{ lab.lab_name or '' }}"></label>
+      </div>
+
+      <!-- ============================================= -->
+      <!-- BIOCHEMISTRY -->
+      <!-- ============================================= -->
+      <details class="v2-lab-group" open>
+        <summary>Biochemistry</summary>
+        <div class="v2-lab-group-body">
+
+          <details class="v2-lab-sub" open>
+            <summary>Glycemic / Diabetes</summary>
+            <div class="v2-form v2-lab-grid">
+              {{ ef('fasting_glucose',   'Fasting glucose') }}
+              {{ ef('pp_glucose',        'Post-meal glucose') }}
+              {{ ef('hba1c',             'HbA1c') }}
+              {{ ef('insulin_fasting',   'Fasting insulin') }}
+              {{ ef('c_peptide',         'C-peptide') }}
+              {{ ef('fructosamine',      'Fructosamine') }}
+              {{ ef('homa_ir',           'HOMA-IR (auto)') }}
+              {{ ef('homa_beta',         'HOMA-Beta (auto)') }}
+            </div>
+          </details>
+
+          <details class="v2-lab-sub">
+            <summary>Lipid profile</summary>
+            <div class="v2-form v2-lab-grid">
+              {{ ef('total_cholesterol', 'Total cholesterol') }}
+              {{ ef('hdl',               'HDL-C') }}
+              {{ ef('ldl',               'LDL-C') }}
+              {{ ef('triglycerides',     'Triglycerides') }}
+              {{ ef('vldl',              'VLDL-C (auto)') }}
+              {{ ef('non_hdl',           'Non-HDL-C (auto)') }}
+              {{ ef('ldl_hdl_ratio',     'LDL/HDL (auto)') }}
+              {{ ef('total_hdl_ratio',   'TC/HDL (auto)') }}
+              {{ ef('aip',               'AIP (auto)') }}
+              {{ ef('lpa',               'Lp(a)') }}
+              {{ ef('apob',              'ApoB') }}
+            </div>
+          </details>
+
+          <details class="v2-lab-sub">
+            <summary>Liver function</summary>
+            <div class="v2-form v2-lab-grid">
+              {{ ef('alt_sgpt',          'ALT (SGPT)') }}
+              {{ ef('ast_sgot',          'AST (SGOT)') }}
+              {{ ef('alp',               'ALP') }}
+              {{ ef('ggt',               'GGT') }}
+              {{ ef('bilirubin_total',   'Total bilirubin') }}
+              {{ ef('bilirubin_direct',  'Direct bilirubin') }}
+              {{ ef('bilirubin_indirect','Indirect bilirubin (auto)') }}
+              {{ ef('albumin',           'Albumin') }}
+              {{ ef('globulin',          'Globulin (auto)') }}
+              {{ ef('a_g_ratio',         'A/G ratio (auto)') }}
+              {{ ef('total_protein',     'Total protein') }}
+            </div>
+          </details>
+
+          <details class="v2-lab-sub">
+            <summary>Kidney function</summary>
+            <div class="v2-form v2-lab-grid">
+              {{ ef('creatinine',        'Creatinine') }}
+              {{ ef('urea',              'Urea (BUN)') }}
+              {{ ef('uric_acid',         'Uric acid') }}
+              {{ ef('egfr',              'eGFR (auto)') }}
+            </div>
+          </details>
+
+          <details class="v2-lab-sub">
+            <summary>Electrolytes &amp; minerals</summary>
+            <div class="v2-form v2-lab-grid">
+              {{ ef('sodium',            'Sodium (Na+)') }}
+              {{ ef('potassium',         'Potassium (K+)') }}
+              {{ ef('calcium',           'Calcium (Ca2+)') }}
+              {{ ef('chloride',          'Chloride (Cl-)') }}
+              {{ ef('phosphate',         'Phosphate (PO4)') }}
+              {{ ef('magnesium',         'Magnesium (Mg2+)') }}
+            </div>
+          </details>
+
+          <details class="v2-lab-sub">
+            <summary>Iron studies</summary>
+            <div class="v2-form v2-lab-grid">
+              {{ ef('iron',              'Serum iron') }}
+              {{ ef('ferritin',          'Ferritin') }}
+              {{ ef('tibc',              'TIBC') }}
+              {{ ef('transferrin_sat',   'Transferrin sat (auto)') }}
+            </div>
+          </details>
+
+          <details class="v2-lab-sub">
+            <summary>Thyroid</summary>
+            <div class="v2-form v2-lab-grid">
+              {{ ef('tsh',               'TSH') }}
+              {{ ef('t3',                'Total T3') }}
+              {{ ef('t4',                'Total T4') }}
+              {{ ef('free_t3',           'Free T3') }}
+              {{ ef('free_t4',           'Free T4') }}
+              {{ ef('tpo_ab',            'Anti-TPO') }}
+              {{ ef('thyroglobulin',     'Thyroglobulin') }}
+            </div>
+          </details>
+
+          <details class="v2-lab-sub">
+            <summary>Vitamins &amp; minerals</summary>
+            <div class="v2-form v2-lab-grid">
+              {{ ef('vitamin_d',         'Vitamin D (25-OH)') }}
+              {{ ef('vitamin_b12',       'Vitamin B12') }}
+              {{ ef('folate',            'Folate') }}
+              {{ ef('vitamin_a',         'Vitamin A') }}
+              {{ ef('vitamin_e',         'Vitamin E') }}
+              {{ ef('vitamin_c',         'Vitamin C') }}
+              {{ ef('vitamin_k',         'Vitamin K') }}
+              {{ ef('zinc',              'Zinc') }}
+              {{ ef('copper',            'Copper') }}
+              {{ ef('selenium',          'Selenium') }}
+            </div>
+          </details>
+
+          <details class="v2-lab-sub">
+            <summary>Hormones</summary>
+            <div class="v2-form v2-lab-grid">
+              {{ ef('cortisol_am',       'Morning cortisol') }}
+              {{ ef('prolactin',         'Prolactin') }}
+              {{ ef('testosterone',      'Total testosterone') }}
+              {{ ef('free_testosterone', 'Free testosterone') }}
+              {{ ef('estrogen',          'Estradiol') }}
+              {{ ef('progesterone',      'Progesterone') }}
+              {{ ef('lh',                'LH') }}
+              {{ ef('fsh',               'FSH') }}
+              {{ ef('dhea_s',            'DHEA-S') }}
+              {{ ef('shbg',              'SHBG') }}
+              {{ ef('amh',               'AMH') }}
+            </div>
+          </details>
+
+          <details class="v2-lab-sub">
+            <summary>Cardiac &amp; inflammation</summary>
+            <div class="v2-form v2-lab-grid">
+              {{ ef('crp',               'CRP') }}
+              {{ ef('homocysteine',      'Homocysteine') }}
+              {{ ef('troponin',          'Troponin') }}
+              {{ ef('bnp',               'BNP') }}
+            </div>
+          </details>
+
+          <details class="v2-lab-sub">
+            <summary>Enzymes</summary>
+            <div class="v2-form v2-lab-grid">
+              {{ ef('ldh',               'LDH') }}
+              {{ ef('ck_total',          'CK total') }}
+              {{ ef('ck_mb',             'CK-MB') }}
+              {{ ef('lipase',            'Lipase') }}
+              {{ ef('amylase',           'Amylase') }}
+              {{ ef('ammonia',           'Ammonia') }}
+            </div>
+          </details>
+
+          <details class="v2-lab-sub">
+            <summary>Autoimmune</summary>
+            <div class="v2-form v2-lab-grid">
+              {{ ef('anti_ccp',          'Anti-CCP') }}
+              {{ ef('ra_factor',         'RA factor') }}
+              {{ ef('ana',               'ANA') }}
+            </div>
+          </details>
+
+          <details class="v2-lab-sub">
+            <summary>Tumour markers</summary>
+            <div class="v2-form v2-lab-grid">
+              {{ ef('psa_total',         'PSA total') }}
+              {{ ef('psa_free',          'PSA free') }}
+              {{ ef('ca125',             'CA-125') }}
+              {{ ef('ca19_9',            'CA 19-9') }}
+              {{ ef('afp',               'AFP') }}
+              {{ ef('cea',               'CEA') }}
+              {{ ef('beta_hcg',          'Beta-hCG') }}
+            </div>
+          </details>
+
+        </div>
+      </details>
+
+      <!-- ============================================= -->
+      <!-- HAEMATOLOGY -->
+      <!-- ============================================= -->
+      <details class="v2-lab-group">
+        <summary>Haematology</summary>
+        <div class="v2-lab-group-body">
+
+          <details class="v2-lab-sub" open>
+            <summary>Complete blood count</summary>
+            <div class="v2-form v2-lab-grid">
+              {{ ef('hemoglobin',        'Haemoglobin') }}
+              {{ ef('hematocrit',        'Haematocrit') }}
+              {{ ef('rbc',               'RBC count') }}
+              {{ ef('wbc',               'WBC') }}
+              {{ ef('platelets',         'Platelets') }}
+              {{ ef('mcv',               'MCV (auto)') }}
+              {{ ef('mch',               'MCH (auto)') }}
+              {{ ef('mchc',              'MCHC (auto)') }}
+              {{ ef('rdw',               'RDW') }}
+              {{ ef('mpv',               'MPV') }}
+            </div>
+          </details>
+
+          <details class="v2-lab-sub">
+            <summary>Differential count</summary>
+            <div class="v2-form v2-lab-grid">
+              {{ ef('neutrophils_pct',   'Neutrophils %') }}
+              {{ ef('lymphocytes_pct',   'Lymphocytes %') }}
+              {{ ef('monocytes_pct',     'Monocytes %') }}
+              {{ ef('eosinophils_pct',   'Eosinophils %') }}
+              {{ ef('basophils_pct',     'Basophils %') }}
+            </div>
+          </details>
+
+          <details class="v2-lab-sub">
+            <summary>Coagulation &amp; inflammation</summary>
+            <div class="v2-form v2-lab-grid">
+              {{ ef('esr',               'ESR') }}
+              {{ ef('pt_inr',            'PT / INR') }}
+              {{ ef('pct',               'PT (seconds)') }}
+              {{ ef('aptt',              'APTT') }}
+              {{ ef('d_dimer',           'D-dimer') }}
+              {{ ef('fibrinogen',        'Fibrinogen') }}
+              {{ ef('tt',                'Thrombin time') }}
+            </div>
+          </details>
+
+        </div>
+      </details>
+
+      <div class="v2-lab-submit">
+        <button type="submit">Save changes</button>
+      </div>
+    </form>
+  </div>
+
+  <details class="v2-details v2-details-danger">
+    <summary>Delete this lab result</summary>
+    <div class="v2-details-body">
+      <p class="v2-hint">This permanently removes the entire lab entry.</p>
+      <form action="{{ url_for('delete_lab', mid=member.id, lab_id=lab.id) }}" method="post"
+            onsubmit="return confirm('Delete this lab entry permanently?');">
+        <button type="submit" class="v2-btn v2-btn-danger">Delete lab entry</button>
+      </form>
+    </div>
+  </details>
+
+</div>
+{% endblock %}

@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ member.name }} - Health Report</title>
+<style>
+@page { size: A4 portrait; margin: 0; }
+* { box-sizing: border-box;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important; }
+html, body { margin: 0; padding: 0; }
+body { font-family: Inter, "Segoe UI", Arial, sans-serif;
+       color: #2c2f36; font-size: 11px; line-height: 1.35;
+       background: #eef0f2; }
+
+.preview-bar { position: sticky; top: 0; z-index: 99;
+    background: #232a35; color: #fff; padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.preview-bar .title { font-size: 13px; font-weight: 600; }
+.preview-bar .sub { font-size: 10.5px; color: #8a919d; margin-left: auto; }
+.preview-bar button { background: #7d9b88; color: #fff; border: none;
+    padding: 8px 16px; border-radius: 7px; cursor: pointer;
+    font-weight: 600; font-size: 12.5px; }
+.preview-bar .ghost { background: transparent; border: 1px solid #39414f;
+    color: #c7cbd3; padding: 7px 12px; font-weight: 500; }
+
+.page { background: #fff; width: 210mm; min-height: 297mm;
+    margin: 0 auto 12px; padding: 10mm 12mm;
+    display: flex; flex-direction: column;
+    box-shadow: 0 2px 10px rgba(35,42,53,.08); }
+
+.rpt-head { display: flex; justify-content: space-between;
+    align-items: baseline; padding-bottom: 6px;
+    margin-bottom: 10px; border-bottom: 2px solid #1f3a5f; }
+.rpt-head h1 { margin: 0; font-size: 16px; font-weight: 800;
+    color: #1f3a5f; }
+.rpt-head .sub { font-size: 9px; color: #8c9098;
+    text-transform: uppercase; letter-spacing: .5px; font-weight: 700; }
+
+.meta-strip { display: grid; grid-template-columns: repeat(6, 1fr);
+    gap: 5px; margin-bottom: 10px; }
+.meta-cell { background: #fbfaf7; border: 1px solid #e3ddd3;
+    border-radius: 8px; padding: 6px 8px;
+    display: flex; flex-direction: column; gap: 2px;
+    min-height: 44px; justify-content: center; }
+.meta-cell span { font-size: 7px; color: #8c9098;
+    text-transform: uppercase; letter-spacing: .5px; font-weight: 800; }
+.meta-cell b { font-size: 11px; color: #2c2f36; font-weight: 700; }
+
+.notes-row { background: #fbfaf7; border: 1px solid #e3ddd3;
+    border-radius: 8px; padding: 8px 11px; margin-bottom: 10px;
+    font-size: 10.5px; color: #5b6068; }
+.notes-row b { color: #1f3a5f; text-transform: uppercase;
+    font-size: 8px; letter-spacing: .5px; display: block;
+    margin-bottom: 3px; font-weight: 800; }
+
+.sec-title { font-size: 11.5px; font-weight: 800; color: #1f3a5f;
+    margin: 10px 0 6px; padding-left: 8px;
+    border-left: 3px solid #7d9b88;
+    text-transform: uppercase; letter-spacing: .6px; }
+
+.med-summary { display: grid;
+    grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 10px; }
+.med-pill { border-radius: 8px; padding: 7px 10px;
+    display: flex; flex-direction: column; gap: 2px;
+    border: 1px solid #e3ddd3; border-left-width: 3px; background: #fff; }
+.med-pill.active { border-left-color: #22c55e; background: #f0fdf4; }
+.med-pill.ended  { border-left-color: #94a3b8; background: #f1f5f9; }
+.mp-name { font-size: 10.5px; font-weight: 800; color: #1f3a5f; }
+.med-pill.active .mp-name { color: #15803d; }
+.med-pill.ended .mp-name { color: #4b5563; text-decoration: line-through; }
+.mp-dose { font-size: 8.5px; color: #5b6068; }
+.mp-dates { font-size: 7.5px; color: #8c9098; }
+.mp-status { font-size: 6.8px; font-weight: 800;
+    letter-spacing: .4px; text-transform: uppercase;
+    color: #15803d; margin-top: 2px; }
+
+.caps-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+.cap { border-radius: 8px; padding: 6px 8px;
+    display: flex; flex-direction: column; gap: 1px;
+    background: #f1f5f9; border: 1px solid #e3ddd3; min-height: 44px; }
+.cap .cp-l { font-size: 7px; text-transform: uppercase;
+    letter-spacing: .4px; font-weight: 800; color: #64748b; }
+.cap .cp-v { font-size: 13px; font-weight: 800;
+    line-height: 1.05; color: #334155; }
+.cap .cp-r { font-size: 6.5px; color: #94a3b8; }
+.cap.normal { background: #dcfce7; border-color: #bbf7d0; }
+.cap.normal .cp-l, .cap.normal .cp-r { color: #166534; }
+.cap.normal .cp-v { color: #15803d; }
+.cap.high { background: #fee2e2; border-color: #fecaca; }
+.cap.high .cp-l, .cap.high .cp-r { color: #b91c1c; }
+.cap.high .cp-v { color: #991b1b; }
+.cap.low { background: #ede9fe; border-color: #ddd6fe; }
+.cap.low .cp-l, .cap.low .cp-r { color: #6d28d9; }
+.cap.low .cp-v { color: #5b21b6; }
+
+.trends-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.trend-card { border: 1px solid #e3ddd3; border-radius: 9px;
+    background: #fff; padding: 8px 10px;
+    display: flex; flex-direction: column; gap: 5px;
+    break-inside: avoid; page-break-inside: avoid; }
+.tc-head { display: flex; justify-content: space-between;
+    align-items: center; gap: 5px; padding-bottom: 4px;
+    border-bottom: 1px solid #eef0f2; }
+.tc-name { font-size: 9.5px; font-weight: 800; color: #1f3a5f;
+    text-transform: uppercase; letter-spacing: .25px; }
+.tc-status { font-size: 7px; font-weight: 800; padding: 2px 7px;
+    border-radius: 9px; text-transform: uppercase; white-space: nowrap; }
+.tc-status.normal { background: #dcfce7; color: #166534; }
+.tc-status.high { background: #fee2e2; color: #b91c1c; }
+.tc-status.low { background: #ede9fe; color: #6d28d9; }
+.tc-status.unknown { background: #e5e7eb; color: #4b5563; }
+.tc-svg { background: #fbfaf7; border-radius: 6px;
+    padding: 4px; min-height: 118px;
+    display: flex; align-items: center; justify-content: center; }
+.tc-svg img { display: block; width: 100%; height: auto;
+    max-width: 100%; min-height: 108px; object-fit: contain; }
+.tc-stats { display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 3px; margin-top: auto; }
+.tc-stats > div { background: #f8fafc; border-radius: 4px;
+    padding: 3px 5px; display: flex; flex-direction: column; gap: 1px; }
+.tc-stats span { font-size: 6.2px; color: #8c9098;
+    text-transform: uppercase; letter-spacing: .2px; font-weight: 800; }
+.tc-stats b { font-size: 9px; color: #2c2f36; font-weight: 700; }
+
+.colour-bib { margin-top: auto; padding-top: 8px;
+    border-top: 1.2px solid #b8ac97; }
+.cb-title { font-size: 8px; color: #5b6068;
+    text-transform: uppercase; letter-spacing: .5px;
+    font-weight: 800; text-align: center; margin-bottom: 6px; }
+.cb-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+.cb-item { background: #fbfaf7; border: 1px solid #e3ddd3;
+    border-radius: 7px; padding: 6px; display: flex;
+    flex-direction: column; gap: 4px; align-items: center;
+    text-align: center; }
+.cb-sample { display: block; width: 100%; height: 8px; border-radius: 3px; }
+.cb-sample.navy { background: #1f3a5f; }
+.cb-sample.purple-dash { background: repeating-linear-gradient(90deg,#7c3aed 0 5px,transparent 5px 8px); }
+.cb-sample.teal-band { background: #b7e3dc; }
+.cb-sample.green-dot  { background: #22c55e; width: 12px; height: 12px; border-radius: 50%; }
+.cb-sample.red-dot    { background: #ef4444; width: 12px; height: 12px; border-radius: 50%; }
+.cb-sample.purple-dot { background: #7c3aed; width: 12px; height: 12px; border-radius: 50%; }
+.cb-label { font-size: 6.6px; font-weight: 800; color: #1f3a5f;
+    text-transform: uppercase; }
+.cb-note { font-size: 6px; color: #5b6068; }
+
+.kpi-row { display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 5px; margin-bottom: 8px; }
+.kpi { border-radius: 8px; padding: 7px 10px;
+    display: flex; flex-direction: column; gap: 2px;
+    border: 1px solid #e3ddd3; border-left-width: 3px;
+    background: #fff; }
+.kpi span { font-size: 7px; color: #8c9098;
+    text-transform: uppercase; letter-spacing: .4px; font-weight: 800; }
+.kpi b { font-size: 14px; font-weight: 800; color: #334155; }
+.kpi em { font-size: 7px; color: #5b6068; font-style: normal; }
+.kpi.grade { background: linear-gradient(135deg,#1f3a5f,#2c4a73);
+    border: none; color: #fff; }
+.kpi.grade span { color: rgba(255,255,255,.8); }
+.kpi.grade b, .kpi.grade em { color: #fff; }
+.kpi.ok { border-left-color: #22c55e; background: #f0fdf4; }
+.kpi.ok b { color: #15803d; }
+.kpi.hi { border-left-color: #ef4444; background: #fef2f2; }
+.kpi.hi b { color: #b91c1c; }
+.kpi.lo { border-left-color: #7c3aed; background: #f5f3ff; }
+.kpi.lo b { color: #5b21b6; }
+.kpi.tt { border-left-color: #1f3a5f; background: #f1f5f9; }
+.kpi.tt b { color: #1f3a5f; }
+
+.dist-block { background: #fbfaf7; border: 1px solid #e3ddd3;
+    border-radius: 9px; padding: 8px 12px; margin-bottom: 8px;
+    display: grid; grid-template-columns: 110px 1fr;
+    gap: 12px; align-items: center; }
+.dist-donut svg { max-width: 100px; height: auto; }
+.dist-title { font-size: 8px; color: #5b6068;
+    text-transform: uppercase; letter-spacing: .4px;
+    font-weight: 800; margin-bottom: 3px; }
+.dist-row { display: flex; align-items: center; gap: 6px;
+    font-size: 9.5px; color: #2c2f36; }
+.dist-row b { font-weight: 700; color: #1f3a5f; }
+.dist-dot { display: inline-block; width: 8px; height: 8px;
+    border-radius: 50%; }
+.dist-dot.ok { background: #22c55e; }
+.dist-dot.hi { background: #ef4444; }
+.dist-dot.lo { background: #7c3aed; }
+.dist-bar { margin-top: 4px; height: 5px; border-radius: 5px;
+    background: #e2e8f0; overflow: hidden; }
+.dist-bar-fill { height: 100%;
+    background: linear-gradient(90deg,#4ade80,#22c55e); }
+.dist-note { font-size: 7.5px; color: #8c9098; margin-top: 2px; }
+
+.stat-sheet { width: 100%; border-collapse: collapse;
+    font-size: 7px; table-layout: fixed; }
+.stat-sheet th, .stat-sheet td { border: 1px solid #cbd5e1;
+    padding: 3px 3px; text-align: center; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+    height: 17px; line-height: 1.15; vertical-align: middle;
+    color: #2c2f36; }
+.stat-sheet th { background: #1f3a5f; color: #fff;
+    font-weight: 700; font-size: 6.4px; text-transform: uppercase;
+    height: 22px; }
+.stat-sheet .name { text-align: left; font-weight: 800;
+    color: #1f3a5f; font-size: 7.6px; padding-left: 6px;
+    background: #f8fafc; }
+.stat-sheet .unit, .stat-sheet .range { color: #475569;
+    font-size: 6.4px; background: #f8fafc; }
+.stat-sheet .cell-n       { background: #f1f5f9; font-weight: 700; color: #334155; }
+.stat-sheet .cell-mean    { background: #ccfbf1; color: #0f766e; font-weight: 600; }
+.stat-sheet .cell-median  { background: #d1fae5; color: #047857; font-weight: 600; }
+.stat-sheet .cell-mode    { background: #ede9fe; color: #6d28d9; font-weight: 600; }
+.stat-sheet .cell-sd      { background: #fef3c7; color: #92400e; font-weight: 600; }
+.stat-sheet .cell-q       { background: #dbeafe; color: #1e40af; }
+.stat-sheet .cell-iqr     { background: #bfdbfe; color: #1e40af; font-weight: 700; }
+.stat-sheet .cell-min     { background: #fee2e2; color: #991b1b; }
+.stat-sheet .cell-max     { background: #fecaca; color: #991b1b; font-weight: 700; }
+.stat-sheet .cell-spread  { background: #fecdd3; color: #7c2d12; font-weight: 600; }
+.stat-sheet .cell-ok      { background: #bbf7d0; color: #15803d; font-weight: 700; }
+.stat-sheet .cell-high    { background: #fecaca; color: #b91c1c; font-weight: 700; }
+.stat-sheet .cell-low     { background: #ddd6fe; color: #5b21b6; font-weight: 700; }
+.stat-sheet .cell-inpct   { background: #f1f5f9; color: #334155; font-weight: 700; }
+.stat-sheet .cell-status.status-normal { background: #dcfce7; color: #15803d; font-weight: 700; }
+.stat-sheet .cell-status.status-high   { background: #fee2e2; color: #b91c1c; font-weight: 700; }
+.stat-sheet .cell-status.status-low    { background: #ede9fe; color: #5b21b6; font-weight: 700; }
+.stat-sheet .cell-status.status-empty  { color: #c9c3b8; background: #fff; }
+.stat-sheet tr { break-inside: avoid; page-break-inside: avoid; }
+.stat-sheet thead { display: table-header-group; }
+
+.cap-legend { display: flex; flex-wrap: wrap; justify-content: center;
+    align-items: center; gap: 3px 5px; margin-top: 6px;
+    padding: 5px 8px; background: #f5efe9;
+    border: 1px solid #d4c3b6; border-radius: 8px; }
+.cap-item { display: inline-flex; align-items: center; gap: 3px;
+    padding: 3px 9px; border-radius: 12px;
+    background: #722f37; color: #f3e8df;
+    font-size: 7.2px; font-weight: 600;
+    border: 1px solid #5a242b; white-space: nowrap; }
+.cap-item b { color: #fbd5a0; font-weight: 800; font-size: 7.4px; }
+
+.log-table { width: 100%; border-collapse: collapse;
+    font-size: 7.4px; }
+.log-table th, .log-table td { border: 1px solid #cbd5e1;
+    padding: 3px 5px; text-align: center;
+    white-space: nowrap; color: #2c2f36; }
+.log-table th { background: #1f3a5f; color: #fff;
+    font-weight: 700; font-size: 6.6px; text-transform: uppercase;
+    height: 20px; }
+.log-table td.left { text-align: left; }
+.log-table td.status-normal { background: #dcfce7; color: #15803d; font-weight: 700; }
+.log-table td.status-high   { background: #fee2e2; color: #b91c1c; font-weight: 700; }
+.log-table td.status-low    { background: #ede9fe; color: #5b21b6; font-weight: 700; }
+.log-table td.status-empty  { color: #c9c3b8; }
+
+.rpt-foot { margin-top: auto; padding-top: 6px;
+    border-top: 1.2px solid #b8ac97; text-align: center;
+    font-size: 7.2px; font-weight: 700; color: #5b6068;
+    text-transform: uppercase; letter-spacing: .4px; }
+.rpt-foot .stamp { color: #8c9098; font-weight: 600; }
+
+@media print {
+  html, body { background: #fff; }
+  .no-print { display: none !important; }
+  .page { box-shadow: none; margin: 0;
+    width: 210mm !important; min-height: 297mm !important;
+    padding: 10mm 12mm !important;
+    page-break-after: always; break-after: page; }
+  .page:last-of-type { page-break-after: auto; break-after: auto; }
+}
+</style>
+<style>
+.lab-record { border:1px solid #e3ddd3; border-radius:8px; padding:8px; margin-bottom:8px; background:#fff; }
+.lab-record-head { display:flex; justify-content:space-between; gap:8px; padding-bottom:6px; margin-bottom:6px; border-bottom:1px solid #ece8e1; font-size:9px; color:#5b6068; }
+.lab-record-head strong { color:#1f3a5f; }
+.lab-value-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; }
+.lab-value { min-width:0; padding:4px 5px; border-radius:4px; background:#f8f8f7; }
+.lab-value span { display:block; font-size:6.5px; color:#73777f; text-transform:uppercase; font-weight:700; }
+.lab-value b { display:block; font-size:8.5px; color:#2c2f36; margin-top:1px; }
+.lab-value.status-high { background:#fef2f2; }
+.lab-value.status-low { background:#f5f3ff; }
+.lab-value.status-normal { background:#f0fdf4; }
+@media print { .lab-value-grid { grid-template-columns:repeat(4,1fr); } }
+</style>
+</head>
+<body>
+
+<div class="preview-bar no-print">
+  <span class="title">Report preview</span>
+  <button onclick="window.print()">Print / Save as PDF</button>
+  <button class="ghost" onclick="safeBack()">Back</button>
+  <span class="sub">A4 portrait · preview matches printed output</span>
+</div>
+<script>
+function safeBack() {
+  try {
+    if (window.history.length > 1) window.history.back();
+    else window.location.href = "{{ url_for('dashboard', mid=member.id) }}";
+  } catch (e) {
+    window.location.href = "{{ url_for('dashboard', mid=member.id) }}";
+  }
+}
+</script>
+
+<!-- ==================== PAGE 1 — SUMMARY ==================== -->
+<section class="page">
+  <div class="rpt-head">
+    <h1>{{ member.name }} &mdash; Health Report</h1>
+    <span class="sub">Summary</span>
+  </div>
+
+  <div class="meta-strip">
+    <div class="meta-cell"><span>Date of birth</span><b>{{ member.dob.strftime('%d %b %Y') if member.dob else '-' }}</b></div>
+    <div class="meta-cell"><span>Age</span><b>{{ age or '-' }} yrs</b></div>
+    <div class="meta-cell"><span>Sex</span><b>{{ 'Male' if sex=='M' else 'Female' if sex=='F' else '-' }}</b></div>
+    <div class="meta-cell"><span>Blood group</span><b>{{ member.blood_group or '-' }}</b></div>
+    <div class="meta-cell"><span>Height</span><b>{{ (member.height_cm ~ ' cm') if member.height_cm else '-' }}</b></div>
+    <div class="meta-cell"><span>Country</span><b>{{ country_name(member.country) if member.country else '-' }}</b></div>
+  </div>
+
+  {% if member.notes %}
+  <div class="notes-row"><b>Medical notes</b>{{ member.notes }}</div>
+  {% endif %}
+
+  {% if medicines %}
+  <div class="sec-title">Medicines</div>
+  <div class="med-summary">
+    {% for m in medicines %}
+    <div class="med-pill {% if m.is_active %}active{% else %}ended{% endif %}">
+      <span class="mp-name">{{ m.name }}</span>
+      {% if m.dose %}<span class="mp-dose">{{ m.dose }}</span>{% endif %}
+      <span class="mp-dates">
+        {% if m.started %}from {{ m.started.strftime('%d %b %Y') }}{% endif %}
+        {% if m.ended %} → {{ m.ended.strftime('%d %b %Y') }}{% endif %}
+      </span>
+      <span class="mp-status">{% if m.is_active %}Active{% else %}Discontinued{% endif %}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="sec-title">Latest readings</div>
+  {% if summary %}
+  <div class="caps-grid">
+    {% for s in summary %}
+    <div class="cap {{ s.status }}">
+      <div class="cp-l">{{ s.label }}</div>
+      <div class="cp-v">{{ s.value }}</div>
+      <div class="cp-r">Healthy {{ s.range_text }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p style="color:#8c9098;font-size:10px">No readings yet.</p>
+  {% endif %}
+
+  <div class="rpt-foot">
+    GENERATED BY HEALTH MONITOR · © COPYRIGHTS RESERVED ·
+    {{ member.name }} · SUMMARY
+    <div class="stamp">Generated {{ now }}</div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 2 — TRENDS ==================== -->
+<section class="page">
+  <div class="rpt-head">
+    <h1>{{ member.name }} &mdash; Trends</h1>
+    <span class="sub">Per-parameter charts</span>
+  </div>
+
+  <p style="font-size:9.5px;color:#8c9098;margin:0 0 8px">
+    Teal band = healthy range · navy line = trend ·
+    purple dashed = average · dots coloured by status
+  </p>
+
+  {% if charts and charts|length > 0 %}
+  <div class="trends-grid">
+    {% for c in charts %}
+    <div class="trend-card">
+      <div class="tc-head">
+        <span class="tc-name">{{ c.title }}{% if c.unit %} ({{ c.unit }}){% endif %}</span>
+        <span class="tc-status {{ c.status }}">
+          {% if c.status == 'high' %}↑ HIGH
+          {% elif c.status == 'low' %}↓ LOW
+          {% elif c.status == 'normal' %}NORMAL
+          {% else %}—{% endif %}
+        </span>
+      </div>
+      <div class="tc-svg">{{ c.svg|safe }}</div>
+      <div class="tc-stats">
+        <div><span>Latest</span><b>{{ c.stats.latest if c.stats.latest is not none else '-' }}</b></div>
+        <div><span>Avg</span><b>{{ c.stats.avg if c.stats.avg is not none else '-' }}</b></div>
+        <div><span>SD</span><b>{{ c.stats.sd if c.stats.sd is not none else '-' }}</b></div>
+        <div><span>N</span><b>{{ c.stats.n }}</b></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p style="color:#8c9098;font-size:10px">No charts yet — add vitals or lab values first.</p>
+  {% endif %}
+
+  <div class="colour-bib">
+    <div class="cb-title">Colour code bibliography</div>
+    <div class="cb-grid">
+      <div class="cb-item"><span class="cb-sample navy"></span><div class="cb-label">Navy line</div><div class="cb-note">Trend over time</div></div>
+      <div class="cb-item"><span class="cb-sample purple-dash"></span><div class="cb-label">Purple dash</div><div class="cb-note">Average reading</div></div>
+      <div class="cb-item"><span class="cb-sample teal-band"></span><div class="cb-label">Teal band</div><div class="cb-note">Healthy range</div></div>
+      <div class="cb-item"><span class="cb-sample green-dot"></span><div class="cb-label">Green dot</div><div class="cb-note">Normal</div></div>
+      <div class="cb-item"><span class="cb-sample red-dot"></span><div class="cb-label">Red dot</div><div class="cb-note">Above range</div></div>
+      <div class="cb-item"><span class="cb-sample purple-dot"></span><div class="cb-label">Purple dot</div><div class="cb-note">Below range</div></div>
+    </div>
+  </div>
+
+  <div class="rpt-foot">
+    GENERATED BY HEALTH MONITOR · © COPYRIGHTS RESERVED ·
+    {{ member.name }} · TRENDS
+    <div class="stamp">Generated {{ now }}</div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 3 — OVERALL HEALTH & STATISTICS ==================== -->
+<section class="page">
+  <div class="rpt-head">
+    <h1>{{ member.name }} &mdash; Overall Health &amp; Statistics</h1>
+    <span class="sub">All readings · all parameters</span>
+  </div>
+
+  {% if overall %}
+  <div class="kpi-row">
+    <div class="kpi grade"><span>Overall grade</span><b>{{ overall.grade }}</b><em>{{ overall.overall_pct }}% in range · {{ overall.coverage }}</em></div>
+    <div class="kpi ok"><span>Normal</span><b>{{ overall.total_normal }}</b><em>in range</em></div>
+    <div class="kpi hi"><span>High</span><b>{{ overall.total_high }}</b><em>above range</em></div>
+    <div class="kpi lo"><span>Low</span><b>{{ overall.total_low }}</b><em>below range</em></div>
+    <div class="kpi tt"><span>Readings</span><b>{{ overall.total_readings }}</b><em>across all tests</em></div>
+  </div>
+
+  <div class="dist-block">
+    <div class="dist-donut">{{ overall.donut_svg|safe }}</div>
+    <div>
+      <div class="dist-title">Distribution of all readings</div>
+      <div class="dist-row"><span class="dist-dot ok"></span>Normal <b>{{ overall.total_normal }}</b> inside healthy range</div>
+      <div class="dist-row"><span class="dist-dot hi"></span>High <b>{{ overall.total_high }}</b> above healthy range</div>
+      <div class="dist-row"><span class="dist-dot lo"></span>Low <b>{{ overall.total_low }}</b> below healthy range</div>
+      <div class="dist-bar"><div class="dist-bar-fill" style="width:{{ overall.overall_pct }}%"></div></div>
+      <div class="dist-note">{{ overall.overall_pct }}% of readings within healthy range</div>
+    </div>
+  </div>
+
+  {% if overall.warnings %}
+  <div class="notes-row"><b>Clinician review flags</b><ul style="margin:3px 0 0 14px">{% for w in overall.warnings %}<li>{{ w }}</li>{% endfor %}</ul></div>
+  {% endif %}
+  <div class="notes-row"><b>Monitoring advice</b><ul style="margin:3px 0 0 14px">{% for a in overall.advice %}<li>{{ a }}</li>{% endfor %}</ul><div style="font-size:7px;color:#64748b;margin-top:3px">{{ overall.note }}</div></div>
+  {% if overall.trend_items %}
+  <div class="sec-title">Observed trajectories</div>
+  <table class="log-table"><thead><tr><th>Parameter</th><th>N</th><th>Latest</th><th>Direction</th><th>30-day statistical projection*</th></tr></thead><tbody>{% for t in overall.trend_items %}<tr><td class="left">{{ t.label }}</td><td>{{ t.n }}</td><td class="status-{{ t.status }}">{{ t.status }}</td><td>{{ t.direction }}</td><td>{{ t.projection if t.projection is not none else '-' }}</td></tr>{% endfor %}</tbody></table><div style="font-size:7px;color:#64748b;margin-top:3px">*Mathematical extrapolation of recorded values; not a medical prediction.</div>
+  {% endif %}
+
+  <table class="stat-sheet">
+    <colgroup>
+      <col style="width:12%"><col style="width:4.5%"><col style="width:7%">
+      <col style="width:2.5%"><col style="width:5.5%"><col style="width:5.5%">
+      <col style="width:5.5%"><col style="width:5.5%"><col style="width:5%">
+      <col style="width:5%"><col style="width:5%"><col style="width:5%">
+      <col style="width:4.5%"><col style="width:4.5%"><col style="width:4.5%">
+      <col style="width:2.5%"><col style="width:2.5%"><col style="width:2.5%">
+      <col style="width:5%"><col style="width:6%">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>Parameter</th><th>Unit</th><th>Range</th><th>N</th>
+        <th>Latest</th><th>Mean</th><th>Median</th><th>Mode</th>
+        <th>SD</th><th>Q1</th><th>Q3</th><th>IQR</th>
+        <th>Min</th><th>Max</th><th>Spread</th>
+        <th>OK</th><th>↑</th><th>↓</th>
+        <th>In %</th><th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in overall.rows %}
+      <tr>
+        <td class="name">{{ r.label }}</td>
+        <td class="unit">{{ r.unit }}</td>
+        <td class="range">{{ r.range }}</td>
+        <td class="cell-n">{{ r.n }}</td>
+        <td class="cell-status status-{{ r.status }}">{{ r.latest if r.latest is not none else '-' }}</td>
+        <td class="cell-mean">{{ r.avg if r.avg is not none else '-' }}</td>
+        <td class="cell-median">{{ r.median if r.median is not none else '-' }}</td>
+        <td class="cell-mode">{{ r.mode if r.mode is not none else '-' }}</td>
+        <td class="cell-sd">{{ r.sd if r.sd is not none else '-' }}</td>
+        <td class="cell-q">{{ r.q1 if r.q1 is not none else '-' }}</td>
+        <td class="cell-q">{{ r.q3 if r.q3 is not none else '-' }}</td>
+        <td class="cell-iqr">{{ r.iqr if r.iqr is not none else '-' }}</td>
+        <td class="cell-min">{{ r.min if r.min is not none else '-' }}</td>
+        <td class="cell-max">{{ r.max if r.max is not none else '-' }}</td>
+        <td class="cell-spread">{{ r.spread if r.spread is not none else '-' }}</td>
+        <td class="cell-ok">{{ r.normal }}</td>
+        <td class="cell-high">{{ r.high }}</td>
+        <td class="cell-low">{{ r.low }}</td>
+        <td class="cell-inpct">{{ r.in_range_pct }}%</td>
+        <td class="cell-status status-{{ r.status }}">
+          {% if r.status == 'high' %}↑
+          {% elif r.status == 'low' %}↓
+          {% elif r.status == 'normal' %}OK
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="cap-legend">
+    <span class="cap-item"><b>N</b> readings</span>
+    <span class="cap-item"><b>Latest</b> most recent</span>
+    <span class="cap-item"><b>Mean</b> average</span>
+    <span class="cap-item"><b>Median</b> middle</span>
+    <span class="cap-item"><b>Mode</b> most repeated</span>
+    <span class="cap-item"><b>SD</b> spread</span>
+    <span class="cap-item"><b>Q1·Q3</b> quartiles</span>
+    <span class="cap-item"><b>IQR</b> Q3−Q1</span>
+    <span class="cap-item"><b>Min·Max</b> extremes</span>
+    <span class="cap-item"><b>Spread</b> max−min</span>
+    <span class="cap-item"><b>OK</b> normal</span>
+    <span class="cap-item"><b>↑</b> high</span>
+    <span class="cap-item"><b>↓</b> low</span>
+    <span class="cap-item"><b>In %</b> within range</span>
+    <span class="cap-item"><b>Status</b> latest reading</span>
+  </div>
+  {% else %}
+  <p style="color:#8c9098;font-size:10px">Not enough data yet.</p>
+  {% endif %}
+
+  <div class="rpt-foot">
+    GENERATED BY HEALTH MONITOR · © COPYRIGHTS RESERVED ·
+    {{ member.name }} · OVERALL HEALTH &amp; STATISTICS
+    <div class="stamp">Generated {{ now }}</div>
+  </div>
+</section>
+
+<!-- ==================== VITALS LOG ==================== -->
+{% if vitals %}
+<section class="page">
+  <div class="rpt-head">
+    <h1>{{ member.name }} &mdash; Vitals Log</h1>
+    <span class="sub">Chronological</span>
+  </div>
+
+  <table class="log-table">
+    <thead>
+      <tr>
+        <th>Date</th><th>Time</th><th>Arm</th><th>BP</th><th>Pulse</th>
+        <th>Weight</th><th>Height</th><th>BMI</th><th>SpO₂</th><th>Temp</th><th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in vitals %}
+      <tr>
+        <td>{{ v.timestamp.strftime('%Y-%m-%d') if v.timestamp else '-' }}</td>
+        <td>{{ v.slot|capitalize if v.slot else '-' }}</td>
+        <td>{{ v.arm|capitalize if v.arm else '-' }}</td>
+        {% set sys_stt = classify('systolic', v.systolic, age, sex, flags) if v.systolic is not none else 'empty' %}
+        {% set dia_stt = classify('diastolic', v.diastolic, age, sex, flags) if v.diastolic is not none else 'empty' %}
+        {% if 'high' in [sys_stt, dia_stt] %}{% set bp_stt = 'high' %}
+        {% elif 'low' in [sys_stt, dia_stt] %}{% set bp_stt = 'low' %}
+        {% elif sys_stt == 'normal' and dia_stt == 'normal' %}{% set bp_stt = 'normal' %}
+        {% else %}{% set bp_stt = 'empty' %}{% endif %}
+        <td class="status-{{ bp_stt }}">{{ v.systolic or '-' }}/{{ v.diastolic or '-' }}</td>
+        {% set p_stt = classify('pulse', v.pulse, age, sex, flags) if v.pulse is not none else 'empty' %}
+        <td class="status-{{ p_stt }}">{{ v.pulse or '-' }}</td>
+        <td>{{ v.weight_kg or '-' }}</td>
+        <td>{{ v.height_cm or '-' }}</td>
+        <td>{{ v.bmi or '-' }}</td>
+        {% set spo2_stt = classify('spo2', v.spo2, age, sex, flags) if v.spo2 is not none else 'empty' %}
+        <td class="status-{{ spo2_stt }}">{{ v.spo2 or '-' }}</td>
+        {% set t_stt = classify('temp', v.temp_c, age, sex, flags) if v.temp_c is not none else 'empty' %}
+        <td class="status-{{ t_stt }}">{{ v.temp_c or '-' }}</td>
+        <td class="left">{{ v.notes or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="rpt-foot">
+    GENERATED BY HEALTH MONITOR · © COPYRIGHTS RESERVED ·
+    {{ member.name }} · VITALS LOG
+    <div class="stamp">Generated {{ now }}</div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ==================== LAB RESULTS LOG ==================== -->
+{% if labs %}
+<section class="page">
+  <div class="rpt-head">
+    <h1>{{ member.name }} &mdash; Lab Results Log</h1>
+    <span class="sub">All entered and calculated laboratory values</span>
+  </div>
+
+  {% for l in labs %}
+  <div class="lab-record">
+    <div class="lab-record-head">
+      <strong>{{ l.date.strftime('%Y-%m-%d') if l.date else '-' }}</strong>
+      <span>{{ l.lab_name or 'Lab report' }}</span>
+    </div>
+    <div class="lab-value-grid">
+      {% for f in lab_fields %}
+        {% set value = l|attr(f) %}
+        {% if value is not none %}
+        {% set stt = classify(f, value, age, sex, flags) %}
+        <div class="lab-value status-{{ stt }}">
+          <span>{{ friendly.get(f, f) }}</span>
+          <b>{{ value }}{% if units.get(f) %} {{ units.get(f) }}{% endif %}</b>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <div class="rpt-foot">
+    GENERATED BY HEALTH MONITOR · © COPYRIGHTS RESERVED ·
+    {{ member.name }} · LAB RESULTS LOG
+    <div class="stamp">Generated {{ now }}</div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ==================== ADDITIONAL DIAGNOSTIC RESULTS ==================== -->
+{% if clinical_tests %}
+<section class="page">
+  <div class="rpt-head">
+    <h1>{{ member.name }} &mdash; Additional Diagnostic Results</h1>
+    <span class="sub">Microbiology · pathology · urine · stool</span>
+  </div>
+  {% for cat in ['microbiology','pathology','urine','stool'] %}
+    {% set ns = namespace(has=false) %}
+    {% for t in clinical_tests %}{% if t.category == cat %}{% set ns.has=true %}{% endif %}{% endfor %}
+    {% if ns.has %}
+    <div class="sec-title">{{ test_category_labels.get(cat, cat|title) }}</div>
+    <table class="log-table"><thead><tr><th>Date</th><th>Parameter</th><th>Result</th><th>Unit</th><th>Reference</th><th>Status</th><th>Notes</th></tr></thead><tbody>
+      {% for t in clinical_tests if t.category == cat %}
+      <tr><td>{{ t.date.strftime('%Y-%m-%d') if t.date else '-' }}</td><td class="left">{{ t.label }}</td><td class="status-{{ t.status }}">{{ t.value }}</td><td>{{ t.unit }}</td><td>{{ t.reference }}</td><td class="status-{{ t.status }}">{{ t.status|capitalize }}</td><td class="left">{{ t.notes or '' }}</td></tr>
+      {% endfor %}
+    </tbody></table>
+    {% endif %}
+  {% endfor %}
+  <div class="rpt-foot">GENERATED BY HEALTH MONITOR · {{ member.name }} · ADDITIONAL DIAGNOSTIC RESULTS<div class="stamp">Generated {{ now }}</div></div>
+</section>
+{% endif %}
+
+<!-- ==================== WEIGHT LOG ==================== -->
+{% if weights %}
+<section class="page">
+  <div class="rpt-head">
+    <h1>{{ member.name }} &mdash; Weight Log</h1>
+    <span class="sub">Timeline of all recordings</span>
+  </div>
+
+  <table class="log-table">
+    <thead>
+      <tr>
+        <th>Date</th><th>Time</th><th>Weight (kg)</th>
+        <th>Height (cm)</th><th>BMI</th><th>Status</th><th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in weights %}
+      <tr>
+        <td>{{ v.timestamp.strftime('%Y-%m-%d') if v.timestamp else '-' }}</td>
+        <td>{{ v.slot|capitalize if v.slot else '-' }}</td>
+        <td>{{ v.weight_kg if v.weight_kg is not none else '-' }}</td>
+        <td>{{ v.height_cm if v.height_cm is not none else '-' }}</td>
+        {% set bmi_stt = classify('bmi', v.bmi, age, sex, flags) if v.bmi is not none else 'empty' %}
+        <td class="status-{{ bmi_stt }}">{{ v.bmi if v.bmi is not none else '-' }}</td>
+        <td class="status-{{ bmi_stt }}">
+          {% if bmi_stt == 'high' %}↑ HIGH
+          {% elif bmi_stt == 'low' %}↓ LOW
+          {% elif bmi_stt == 'normal' %}OK
+          {% else %}—{% endif %}
+        </td>
+        <td class="left">{{ v.notes or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="rpt-foot">
+    GENERATED BY HEALTH MONITOR · © COPYRIGHTS RESERVED ·
+    {{ member.name }} · WEIGHT LOG
+    <div class="stamp">Generated {{ now }}</div>
+  </div>
+</section>
+{% endif %}
+
+</body>
+</html>

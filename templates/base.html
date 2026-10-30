@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+<title>{% block title %}Health Monitor{% endblock %}</title>
+<meta name="theme-color" content="#232a35">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="{{ app_name }}">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.json">
+{% if logo %}
+  <link rel="icon" type="image/*" href="{{ url_for('static', filename='uploads/' ~ logo) }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='uploads/' ~ logo) }}">
+{% else %}
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icon.svg') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon.svg') }}">
+{% endif %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% block head %}{% endblock %}
+</head>
+<body class="app-body">
+
+<div class="drawer-overlay" id="drawerOverlay"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    {% if logo %}
+      <img class="brand-logo" src="{{ url_for('static', filename='uploads/' ~ logo) }}" alt="Logo">
+    {% else %}
+      <div class="brand-mark">HM</div>
+    {% endif %}
+    <div class="brand-text">
+      <span class="brand-title">{{ app_name }}</span>
+      <span class="brand-sub">{{ app_tagline }}</span>
+    </div>
+    <button class="close-btn" id="closeSidebar" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-section">Main</div>
+    <a href="{{ url_for('index') }}" class="nav-item {% if active=='index' %}active{% endif %}">Overview</a>
+
+    {% if members %}
+    <div class="nav-section">Members</div>
+    {% for m in members %}
+      <a href="{{ url_for('dashboard', mid=m.id) }}"
+         class="nav-item {% if active=='dashboard' and member and member.id==m.id %}active{% endif %}">{{ m.name }}</a>
+    {% endfor %}
+    {% endif %}
+
+    {% if member is defined and member %}
+    <div class="nav-section">{{ member.name }}</div>
+    <a href="{{ url_for('dashboard', mid=member.id) }}#summary" class="nav-item">Summary</a>
+    <a href="{{ url_for('dashboard', mid=member.id) }}#graphs" class="nav-item">Graphs</a>
+    <a href="{{ url_for('dashboard', mid=member.id) }}#history" class="nav-item">History</a>
+    <a href="{{ url_for('dashboard', mid=member.id) }}#entry" class="nav-item">Add reading</a>
+    <a href="{{ url_for('stats_page', mid=member.id) }}" class="nav-item">Statistics</a>
+    <a href="{{ url_for('report', mid=member.id) }}" class="nav-item">Print report</a>
+    {% endif %}
+
+    <div class="nav-section">Settings</div>
+    <a href="{{ url_for('settings', section='branding') }}" class="nav-item {% if settings_section=='branding' %}active{% endif %}">Branding &amp; logo</a>
+    <a href="{{ url_for('settings', section='security') }}" class="nav-item {% if settings_section=='security' %}active{% endif %}">Security</a>
+    <a href="{{ url_for('settings', section='preferences') }}" class="nav-item {% if settings_section=='preferences' %}active{% endif %}">Preferences</a>
+    <a href="{{ url_for('settings', section='about') }}" class="nav-item {% if settings_section=='about' %}active{% endif %}">About</a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a href="{{ url_for('logout') }}" class="nav-item logout">Sign out</a>
+  </div>
+</aside>
+
+<div class="content">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="icon-btn" id="openSidebar" aria-label="Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <div class="topbar-title">{% block pagetitle %}{% endblock %}</div>
+    </div>
+    <div class="topbar-right">
+      {% block actions %}{% endblock %}
+      <details class="user-menu admin-menu">
+        <summary class="user-btn admin-btn">
+          <span class="user-avatar">{{ prefs.user_emoji or 'A' }}</span>
+          <span class="user-name">{{ prefs.user_name or 'Admin' }}</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div class="user-dropdown admin-dropdown">
+          <div class="admin-header">
+            <span class="admin-avatar">{{ prefs.user_emoji or 'A' }}</span>
+            <div class="admin-info">
+              <div class="admin-name">{{ prefs.user_name or 'Admin' }}</div>
+              <div class="admin-role">Administrator</div>
+            </div>
+          </div>
+          <div class="admin-links">
+            <a href="{{ url_for('settings', section='preferences') }}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Preferences
+            </a>
+            <a href="{{ url_for('settings', section='branding') }}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+              Branding &amp; logo
+            </a>
+            <a href="{{ url_for('settings', section='security') }}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Security
+            </a>
+            <a href="{{ url_for('settings', section='about') }}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              About
+            </a>
+          </div>
+          <div class="admin-footer">
+            <a href="{{ url_for('logout') }}" class="danger">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Sign out
+            </a>
+          </div>
+        </div>
+      </details>
+    </div>
+  </header>
+
+  <div class="page">
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat, m in msgs %}<div class="flash {{cat}}">{{ m }}</div>{% endfor %}
+    {% endwith %}
+    {% block body %}{% endblock %}
+  </div>
+</div>
+
+<script>
+(function(){
+  var body=document.body,
+      o=document.getElementById('openSidebar'),
+      c=document.getElementById('closeSidebar'),
+      ov=document.getElementById('drawerOverlay');
+  function open(){ body.classList.add('sidebar-open'); }
+  function close(){ body.classList.remove('sidebar-open'); }
+  if(o) o.addEventListener('click', open);
+  if(c) c.addEventListener('click', close);
+  if(ov) ov.addEventListener('click', close);
+  document.querySelectorAll('.sidebar .nav-item').forEach(function(a){
+    a.addEventListener('click', function(){ if(window.innerWidth<900) close(); });
+  });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') close(); });
+})();
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function(){});
+  });
+}
+</script>
+</body>
+</html>
