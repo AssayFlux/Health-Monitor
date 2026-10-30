@@ -74,8 +74,52 @@ class HealthDb(c:Context, passphrase:ByteArray):SQLiteOpenHelper(c,"health_monit
 }
 
 class MainActivity:ComponentActivity(){
- override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);if(!Python.isStarted())Python.start(AndroidPlatform(this));lifecycleScope.launch { try { val db=withContext(Dispatchers.IO) { val key=LocalKeyVault().getOrCreateDatabasePassphrase(this@MainActivity); EncryptedDatabaseMigration.migrateIfNeeded(this@MainActivity,key); HealthDb(this@MainActivity,key) }; setContent{MaterialTheme(colorScheme=lightColorScheme(primary=Forest,background=Ivory,surface=Cream,onSurface=Ink,secondary=Clay)){LocalAuthGate { HealthApp(db) }}} } catch(e:Exception) { setContent { MaterialTheme { Surface(Modifier.fillMaxSize(),color=Ivory) { Column(Modifier.fillMaxSize().padding(24.dp),verticalArrangement=Arrangement.Center) { Text("Health database could not be safely opened",fontSize=22.sp,color=Ink); Spacer(Modifier.height(12.dp)); Text(e.message ?: "Database migration failed. Your original database has been preserved where possible.",color=Ink); Text("Do not uninstall the app or clear its data.",color=Ink) } } } } } }}
+ override fun onCreate(savedInstanceState:Bundle?){
+  super.onCreate(savedInstanceState)
+  if(!Python.isStarted()) Python.start(AndroidPlatform(this))
+  setContent {
+   MaterialTheme(colorScheme=lightColorScheme(primary=Forest,background=Ivory,surface=Cream,onSurface=Ink,secondary=Clay)) {
+    LocalAuthGate { AuthenticatedDatabaseHost() }
+   }
+  }
+ }
 }
+
+@Composable
+private fun AuthenticatedDatabaseHost() {
+ val context=androidx.compose.ui.platform.LocalContext.current
+ var db by remember { mutableStateOf<HealthDb?>(null) }
+ var error by remember { mutableStateOf("") }
+ LaunchedEffect(Unit) {
+  try {
+   val opened=withContext(Dispatchers.IO) {
+    val key=LocalKeyVault().getOrCreateDatabasePassphrase(context)
+    try {
+     EncryptedDatabaseMigration.migrateIfNeeded(context,key)
+     HealthDb(context,key)
+    } finally { key.fill(0) }
+   }
+   db=opened
+  } catch(e:Exception) { error=e.message ?: "Database migration failed." }
+ }
+ if(db!=null) {
+  HealthApp(db!!)
+ } else if(error.isNotBlank()) {
+  Surface(Modifier.fillMaxSize(),color=Ivory) {
+   Column(Modifier.fillMaxSize().padding(24.dp),verticalArrangement=Arrangement.Center) {
+    Text("Health database could not be safely opened",fontSize=22.sp,color=Ink)
+    Spacer(Modifier.height(12.dp))
+    Text(error,color=Ink)
+    Text("Do not uninstall the app or clear its data.",color=Ink)
+   }
+  }
+ } else {
+  Surface(Modifier.fillMaxSize(),color=Ivory) {
+   Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center) { CircularProgressIndicator(color=Forest) }
+  }
+ }
+}
+
 @Composable private fun HealthApp(db:HealthDb){
  var tab by remember{mutableStateOf("Home")};var refresh by remember{mutableIntStateOf(0)};var dialog by remember{mutableStateOf("")}
  val members=remember(refresh){db.members()};val vitals=remember(refresh){db.vitals()};val labs=remember(refresh){db.labs()};val meds=remember(refresh){db.medicines()}
