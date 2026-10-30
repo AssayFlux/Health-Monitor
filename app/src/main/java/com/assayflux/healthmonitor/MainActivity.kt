@@ -43,13 +43,13 @@ class HealthDb(c:Context):SQLiteOpenHelper(c,"health_monitor.db",null,2){
   d.execSQL("CREATE TABLE medicines(id INTEGER PRIMARY KEY AUTOINCREMENT,member_id INTEGER NOT NULL,name TEXT NOT NULL,dose TEXT,start_date TEXT,end_date TEXT,notes TEXT)")
   d.execSQL("CREATE TABLE clinical_tests(id INTEGER PRIMARY KEY AUTOINCREMENT,member_id INTEGER NOT NULL,recorded_at TEXT DEFAULT CURRENT_TIMESTAMP,category TEXT,parameter TEXT,value_text TEXT,value_numeric REAL,unit TEXT,ref_low REAL,ref_high REAL,status TEXT,notes TEXT)")
  }
- override fun onUpgrade(d:SQLiteDatabase,o:Int,n:Int){if(o<2){listOf("measurement_date TEXT","time_of_day TEXT","left_systolic REAL","left_diastolic REAL","right_systolic REAL","right_diastolic REAL").forEach{d.execSQL("ALTER TABLE vitals ADD COLUMN $it")};d.execSQL("UPDATE vitals SET measurement_date=date(recorded_at),time_of_day='unknown' WHERE measurement_date IS NULL")}}
+ override fun onUpgrade(d:SQLiteDatabase,o:Int,n:Int){if(o<2){listOf("measurement_date TEXT","time_of_day TEXT","left_systolic REAL","left_diastolic REAL","right_systolic REAL","right_diastolic REAL").forEach{d.execSQL("ALTER TABLE vitals ADD COLUMN $it")};d.execSQL("UPDATE vitals SET measurement_date=date(recorded_at),time_of_day='unknown' WHERE measurement_date IS NULL")};if(o<3){d.execSQL("CREATE TABLE anthropometry(id INTEGER PRIMARY KEY AUTOINCREMENT,member_id INTEGER NOT NULL,measurement_date TEXT NOT NULL,recorded_at TEXT DEFAULT CURRENT_TIMESTAMP,values_json TEXT NOT NULL)")}}
  fun addMember(name:String,dob:String,sex:String,blood:String,height:String){val v=ContentValues().apply{put("name",name);put("dob",dob);put("sex",sex);put("blood",blood);put("height",height.toDoubleOrNull())};writableDatabase.insert("members",null,v)}
  fun addVital(mid:Long,j:JSONObject,notes:String,date:String,period:String){val v=ContentValues().apply{put("member_id",mid);put("measurement_date",date);put("time_of_day",period);put("left_systolic",j.optDouble("left_systolic").takeIf{j.has("left_systolic")});put("left_diastolic",j.optDouble("left_diastolic").takeIf{j.has("left_diastolic")});put("right_systolic",j.optDouble("right_systolic").takeIf{j.has("right_systolic")});put("right_diastolic",j.optDouble("right_diastolic").takeIf{j.has("right_diastolic")});put("pulse",j.optDouble("pulse").takeIf{j.has("pulse")});put("weight",j.optDouble("weight_kg").takeIf{j.has("weight_kg")});put("height",j.optDouble("height_cm").takeIf{j.has("height_cm")});put("spo2",j.optDouble("spo2").takeIf{j.has("spo2")});put("temp",j.optDouble("temp_c").takeIf{j.has("temp_c")});put("notes",notes)};writableDatabase.insert("vitals",null,v)}
  fun addLab(mid:Long,name:String,data:String){writableDatabase.insert("labs",null,ContentValues().apply{put("member_id",mid);put("name",name);put("values_json",data)})}
  fun addMedicine(mid:Long,name:String,dose:String,start:String,end:String,notes:String){writableDatabase.insert("medicines",null,ContentValues().apply{put("member_id",mid);put("name",name);put("dose",dose);put("start_date",start);put("end_date",end);put("notes",notes)})}
  fun rows(sql:String):List<List<String>>{val out=mutableListOf<List<String>>();readableDatabase.rawQuery(sql,null).use{c->while(c.moveToNext())out.add((0 until c.columnCount).map{if(c.isNull(it))"" else c.getString(it)})};return out}
- fun members()=rows("SELECT id,name,COALESCE(sex,''),COALESCE(blood,'') FROM members ORDER BY name")
+ fun members()=rows("SELECT id,name,COALESCE(sex,''),COALESCE(blood,''),COALESCE(dob,'') FROM members ORDER BY name")
  fun vitals()=rows("SELECT v.id,m.name,COALESCE(v.measurement_date,date(v.recorded_at)),COALESCE(v.left_systolic,'')||'/'||COALESCE(v.left_diastolic,''),COALESCE(v.right_systolic,'')||'/'||COALESCE(v.right_diastolic,''),COALESCE(v.pulse,''),COALESCE(v.weight,''),COALESCE(v.spo2,''),COALESCE(v.time_of_day,'') FROM vitals v JOIN members m ON m.id=v.member_id ORDER BY v.id DESC LIMIT 30")
  fun labs()=rows("SELECT l.id,m.name,datetime(l.recorded_at,'localtime'),COALESCE(l.name,'Lab report') FROM labs l JOIN members m ON m.id=l.member_id ORDER BY l.id DESC LIMIT 30")
  fun medicines()=rows("SELECT x.id,m.name,x.name,COALESCE(x.dose,''),COALESCE(x.start_date,'') FROM medicines x JOIN members m ON m.id=x.member_id ORDER BY x.id DESC")
@@ -141,6 +141,41 @@ everyday wellbeing.",fontSize=25.sp,color=Color.White,fontWeight=FontWeight.Semi
  save(member.toLong(),report,normalized);close()
  }catch(e:Exception){}}}){Text("Save result")}},dismissButton={TextButton(onClick=close){Text("Cancel")}})
 }
+
+@Composable private fun AnthropometryDialog(members:List<List<String>>,close:()->Unit,save:(Long,String,String)->Unit){
+ var member by remember{mutableStateOf(members.firstOrNull()?.get(0)?:"")}
+ var date by remember{mutableStateOf(java.text.SimpleDateFormat("yyyy-MM-dd",java.util.Locale.US).format(java.util.Date()))}
+ var profile by remember{mutableStateOf("SOUTH_ASIAN")}
+ var weight by remember{mutableStateOf("")};var height by remember{mutableStateOf("")};var length by remember{mutableStateOf("")}
+ var waist by remember{mutableStateOf("")};var hip by remember{mutableStateOf("")};var neck by remember{mutableStateOf("")};var head by remember{mutableStateOf("")}
+ var muac by remember{mutableStateOf("")};var arm by remember{mutableStateOf("")};var sitting by remember{mutableStateOf("")};var calf by remember{mutableStateOf("")}
+ var triceps by remember{mutableStateOf("")};var subscapular by remember{mutableStateOf("")};var message by remember{mutableStateOf("")}
+ var profileOpen by remember{mutableStateOf(false)}
+ val context=androidx.compose.ui.platform.LocalContext.current
+ val person=members.firstOrNull{it[0]==member}
+ AlertDialog(onDismissRequest=close,title={Text("Anthropometric measurements")},text={Column(Modifier.heightIn(max=570.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()),verticalArrangement=Arrangement.spacedBy(7.dp)){
+ if(members.isNotEmpty())MemberPicker(members,member){member=it}else Text("Add a family member first.")
+ OutlinedButton(onClick={val c=Calendar.getInstance();DatePickerDialog(context,{_,y,m,d->date=String.format(java.util.Locale.US,"%04d-%02d-%02d",y,m+1,d)},c.get(Calendar.YEAR),c.get(Calendar.MONTH),c.get(Calendar.DAY_OF_MONTH)).show()},modifier=Modifier.fillMaxWidth()){Text("Measurement date · $date")}
+ Box{OutlinedButton(onClick={profileOpen=true},modifier=Modifier.fillMaxWidth()){Text(if(profile=="SOUTH_ASIAN")"Population profile · South Asian" else "Population profile · WHO global")};DropdownMenu(expanded=profileOpen,onDismissRequest={profileOpen=false}){listOf("SOUTH_ASIAN","WHO_GLOBAL").forEach{v->DropdownMenuItem(text={Text(if(v=="SOUTH_ASIAN")"South Asian risk-screening" else "WHO global")},onClick={profile=v;profileOpen=false})}}}
+ Text("CORE MEASUREMENTS",color=Forest,fontSize=11.sp,fontWeight=FontWeight.Bold)
+ FormField("Weight · kg",weight,{weight=it},true);FormField("Standing height · cm",height,{height=it},true);FormField("Recumbent length · cm",length,{length=it},true)
+ Text("CIRCUMFERENCES",color=Forest,fontSize=11.sp,fontWeight=FontWeight.Bold)
+ FormField("Waist · cm",waist,{waist=it},true);FormField("Hip · cm",hip,{hip=it},true);FormField("Neck · cm",neck,{neck=it},true);FormField("Head · cm",head,{head=it},true);FormField("Mid-upper arm · cm",muac,{muac=it},true);FormField("Calf · cm",calf,{calf=it},true)
+ Text("ADDITIONAL MEASUREMENTS",color=Forest,fontSize=11.sp,fontWeight=FontWeight.Bold)
+ FormField("Arm span · cm",arm,{arm=it},true);FormField("Sitting height · cm",sitting,{sitting=it},true);FormField("Triceps skinfold · mm",triceps,{triceps=it},true);FormField("Subscapular skinfold · mm",subscapular,{subscapular=it},true)
+ if(message.isNotBlank())Text(message,color=Forest,fontSize=12.sp)
+ }},confirmButton={TextButton(onClick={if(member.isNotBlank()&&listOf(weight,height,length,waist,hip,neck,head,muac,arm,sitting,calf,triceps,subscapular).any{it.isNotBlank()}){try{
+ val fields=listOf("weight_kg" to weight,"height_cm" to height,"length_cm" to length,"waist_cm" to waist,"hip_cm" to hip,"neck_cm" to neck,"head_cm" to head,"mid_upper_arm_cm" to muac,"arm_span_cm" to arm,"sitting_height_cm" to sitting,"calf_cm" to calf,"skin_fold_triceps_mm" to triceps,"skin_fold_subscapular_mm" to subscapular)
+ val payload=hashMapOf<String,Any>("measurement_date" to date,"date_of_birth" to (person?.get(4)?: ""),"sex" to (person?.get(2)?: "unknown"),"population_profile" to profile)
+ fields.forEach{(k,v)->v.toDoubleOrNull()?.let{payload[k]=it}}
+ val raw=Python.getInstance().getModule("anthropometry").callAttr("calculate_json",payload).toString()
+ val parsed=JSONObject(raw);val d=parsed.optJSONObject("derived")?:JSONObject()
+ val summary=listOf("bmi","waist_hip_ratio","waist_height_ratio","body_surface_area").mapNotNull{k->d.optJSONObject(k)?.let{"$k: ${it.optString("value")} ${it.optString("unit")}"} }.joinToString(" · ")
+ val stored=JSONObject().put("calculation",parsed).put("entered_measurements",JSONObject().apply{fields.forEach{(k,v)->v.toDoubleOrNull()?.let{put(k,it)}}}).toString()
+ save(member.toLong(),date,stored);message=summary.ifBlank{"Measurements saved"};close()
+ }catch(e:Exception){message="Unable to save: ${e.message}"}}}){Text("Save measurements")}},dismissButton={TextButton(onClick=close){Text("Cancel")}})
+}
+
 @Composable private fun MedicineDialog(members:List<List<String>>,close:()->Unit,save:(Long,String,String,String,String,String)->Unit){
  var member by remember{mutableStateOf(members.firstOrNull()?.get(0)?:"")};var name by remember{mutableStateOf("")};var dose by remember{mutableStateOf("")};var start by remember{mutableStateOf(java.text.SimpleDateFormat("yyyy-MM-dd",java.util.Locale.US).format(java.util.Date()))};var end by remember{mutableStateOf("")};var notes by remember{mutableStateOf("")}
  val context=androidx.compose.ui.platform.LocalContext.current
