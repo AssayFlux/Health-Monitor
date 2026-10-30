@@ -111,7 +111,7 @@ everyday wellbeing.",fontSize=25.sp,color=Color.White,fontWeight=FontWeight.Semi
     "Vitals"->LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){item{ButtonRow("Record new vitals"){dialog="vitals"}};items(vitals){r->RecordCard("${r[1]} · ${r[2]}","BP ${r[3]}/${r[4]} · Pulse ${r[5]} · Weight ${r[6]} kg · SpO₂ ${r[7]}%")}}
     "Reports"->LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){item{ButtonRow("Add laboratory report"){dialog="lab"}};items(labs){r->RecordCard("${r[1]} · ${r[2]}",r[3])};item{SectionTitle("MEDICINES")};item{ButtonRow("Add medicine"){dialog="medicine"}};items(meds){r->RecordCard("${r[2]} · ${r[1]}","${r[3]} · Started ${r[4]}")}}
     "Analytics"->AnalyticsDashboard(db,refresh)
-    "Reminders"->ReminderManagementScreen()
+    "Reminders"->ReminderManagementScreen(db){refresh++}
     else->Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("Settings & privacy",fontSize=23.sp,fontWeight=FontWeight.SemiBold);RecordCard("On-device database","Health records are stored locally in the app database.");RecordCard("Calculation engine","Python 3.11 embedded with Chaquopy.");RecordCard("Clinical note","Reference ranges are informational and do not provide a diagnosis. Follow the reporting laboratory's interval and clinician guidance.")}
    }
   }
