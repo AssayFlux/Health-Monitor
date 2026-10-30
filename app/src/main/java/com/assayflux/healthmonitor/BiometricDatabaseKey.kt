@@ -58,9 +58,6 @@ class BiometricDatabaseKey(private val context: Context) {
 
     /** Must be called only after the enrollment CryptoObject succeeds. */
     fun persistEnrollment(authenticatedCipher: Cipher, passphrase: ByteArray) {
-        require(authenticatedCipher.opmodeForDatabaseKey() == Cipher.ENCRYPT_MODE) {
-            "Enrollment cipher is not in encryption mode."
-        }
         authenticatedCipher.updateAAD(AAD.toByteArray(Charsets.UTF_8))
         val ciphertext = authenticatedCipher.doFinal(passphrase)
         val envelope = byteArrayOf(1) + authenticatedCipher.iv + ciphertext
@@ -72,19 +69,11 @@ class BiometricDatabaseKey(private val context: Context) {
 
     /** Must be called only with the Cipher returned by a successful BiometricPrompt. */
     fun decryptPassphrase(authenticatedCipher: Cipher): ByteArray {
-        require(authenticatedCipher.opmodeForDatabaseKey() == Cipher.DECRYPT_MODE) {
-            "Unlock cipher is not in decryption mode."
-        }
-        return authenticatedCipher.doFinal(
-            Base64.decode(
-                context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                    .getString(ENVELOPE, null) ?: throw IllegalStateException("Biometric unlock is not enabled."),
-                Base64.NO_WRAP
-            ).copyOfRange(13, Base64.decode(
-                context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                    .getString(ENVELOPE, null)!!, Base64.NO_WRAP
-            ).size)
-        )
+        val encoded = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(ENVELOPE, null) ?: throw IllegalStateException("Biometric unlock is not enabled.")
+        val envelope = Base64.decode(encoded, Base64.NO_WRAP)
+        require(envelope.size > 29 && envelope[0].toInt() == 1) { "Biometric key envelope is invalid." }
+        return authenticatedCipher.doFinal(envelope.copyOfRange(13, envelope.size))
     }
 
     @Synchronized
@@ -117,14 +106,3 @@ class BiometricDatabaseKey(private val context: Context) {
     }
 }
 
-private fun Cipher.opmodeForDatabaseKey(): Int {
-    // Cipher does not expose its mode. This helper is intentionally not used
-    // as an authorization check; CryptoObject success is the authorization.
-    return try {
-        val field = Cipher::class.java.getDeclaredField("opmode")
-        field.isAccessible = true
-        field.getInt(this)
-    } catch (_: Exception) {
-        -1
-    }
-}
