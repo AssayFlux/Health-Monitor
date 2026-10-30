@@ -52,7 +52,6 @@
     {% if overall.warnings %}<div class="v2-review-box"><strong>Flags for clinician review</strong><ul>{% for w in overall.warnings[:6] %}<li>{{ w }}</li>{% endfor %}</ul></div>{% endif %}
     {% if overall.trend_items %}<div class="v2-trend-box"><strong>Observed trajectories</strong><div class="v2-trend-list">{% for t in overall.trend_items[:6] %}<span><b>{{ t.label }}</b> · {{ t.direction }}{% if t.projection is not none %} · 30d statistical projection {{ t.projection }}{% endif %}</span>{% endfor %}</div><small>Projections are mathematical extrapolations, not medical predictions.</small></div>{% endif %}
   </div>
-  </div>
   {% endif %}
 
   <!-- ============ LATEST READINGS ============ -->
