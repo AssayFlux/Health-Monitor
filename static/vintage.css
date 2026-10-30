@@ -77,7 +77,7 @@ tr:hover td{background:#f1ede3}
 .login-card button{background:var(--sidebar)}
 .fingerprint-btn{background:var(--sage-deep)}
 @media(max-width:700px){
-.page{padding:16px 14px calc(82px + env(safe-area-inset-bottom))}
+.page{padding:16px 14px calc(24px + env(safe-area-inset-bottom))}
 .topbar{min-height:56px;padding-inline:12px}
 .topbar-title{font-size:14px}
 .user-name{display:none}
