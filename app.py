@@ -2281,8 +2281,8 @@ def manifest():
         "scope": "/",
         "display": "standalone",
         "orientation": "portrait-primary",
-        "background_color": "#f5f3ef",
-        "theme_color": "#232a35",
+        "background_color": "#f3efe5",
+        "theme_color": "#34483e",
         "icons": [
             {"src": icon_url, "sizes": "192x192",
              "type": "image/svg+xml", "purpose": "any maskable"},
