@@ -33,7 +33,7 @@ object EncryptedDatabaseMigration {
         try {
             val key = String(passphrase, Charsets.UTF_8)
             plain.execSQL("ATTACH DATABASE ? AS encrypted KEY ?", arrayOf(temp.absolutePath, key))
-            plain.rawQuery("SELECT sqlcipher_export('encrypted')", null).use { }
+            plain.rawQuery("SELECT sqlcipher_export('encrypted')", null).use { it.moveToFirst() }
             plain.execSQL("DETACH DATABASE encrypted")
         } finally { plain.close() }
         validate(temp, passphrase, counts)
