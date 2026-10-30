@@ -171,8 +171,16 @@ everyday wellbeing.",fontSize=25.sp,color=Color.White,fontWeight=FontWeight.Semi
 @Composable private fun RecordCard(title:String,subtitle:String){Card(colors=CardDefaults.cardColors(containerColor=Cream),shape=RoundedCornerShape(16.dp)){Column(Modifier.fillMaxWidth().padding(16.dp)){Text(title,color=Ink,fontWeight=FontWeight.SemiBold);Text(subtitle,color=Ink.copy(.62f),fontSize=13.sp)}}}
 @Composable private fun ButtonRow(label:String,onClick:()->Unit){Button(onClick=onClick,modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Forest)){Icon(Icons.Default.Add,null);Spacer(Modifier.width(8.dp));Text(label)}}
 @Composable private fun FormField(label:String,value:String,onChange:(String)->Unit,numeric:Boolean=false){OutlinedTextField(value,onChange,label={Text(label)},modifier=Modifier.fillMaxWidth(),singleLine=true,keyboardOptions=KeyboardOptions(keyboardType=if(numeric)KeyboardType.Decimal else KeyboardType.Text))}
-@Composable private fun PersonDialog(close:()->Unit,save:(List<String>)->Unit){var n by remember{mutableStateOf("")};var dob by remember{mutableStateOf("")};var sex by remember{mutableStateOf("M")};var blood by remember{mutableStateOf("")};var h by remember{mutableStateOf("")};AlertDialog(onDismissRequest=close,title={Text("Family member")},text={Column(verticalArrangement=Arrangement.spacedBy(8.dp)){FormField("Full name",n){n=it};FormField("Date of birth (YYYY-MM-DD)",dob){dob=it};Row{listOf("M","F","Other").forEach{FilterChip(sex==it,{sex=it},label={Text(it)})}};FormField("Blood group",blood){blood=it};FormField("Height (cm)",h,{h=it},true)}},confirmButton={TextButton(onClick={if(n.isNotBlank()){save(listOf(n,dob,sex,blood,h));close()}}){Text("Save")}},dismissButton={TextButton(onClick=close){Text("Cancel")}})}
-@Composable private fun MemberPicker(members:List<List<String>>,selected:String,onPick:(String)->Unit){var expanded by remember{mutableStateOf(false)};Box{OutlinedButton(onClick={expanded=true},modifier=Modifier.fillMaxWidth()){Text(members.firstOrNull{it[0]==selected}?.get(1)?: "Choose family member")};DropdownMenu(expanded,{expanded=false}){members.forEach{DropdownMenuItem(text={Text(it[1])},onClick={onPick(it[0]);expanded=false})}}}}
+@Composable private fun PersonDialog(close:()->Unit,save:(List<String>)->Unit){var n by remember{mutableStateOf("")};var dob by remember{mutableStateOf("")};var sex by remember{mutableStateOf("M")};var blood by remember{mutableStateOf("")};var h by remember{mutableStateOf("")};AlertDialog(onDismissRequest=close,title={Text("Family member")},text={Column(verticalArrangement=Arrangement.spacedBy(8.dp)){FormField("Full name",n){n=it};FormField("Date of birth (YYYY-MM-DD)",dob){dob=it};Row{listOf("M","F","Other").forEach{FilterChip(selected=sex==it,onClick={sex=it},label={Text(it)})}};FormField("Blood group",blood){blood=it};FormField("Height (cm)",h,{h=it},true)}},confirmButton={TextButton(onClick={if(n.isNotBlank()){save(listOf(n,dob,sex,blood,h));close()}}){Text("Save")}},dismissButton={TextButton(onClick=close){Text("Cancel")}})}
+@Composable private fun MemberPicker(members:List<List<String>>,selected:String,onPick:(String)->Unit){
+ var expanded by remember{mutableStateOf(false)}
+ Box {
+  OutlinedButton(onClick={expanded=true},modifier=Modifier.fillMaxWidth()){Text(members.firstOrNull{it[0]==selected}?.get(1)?: "Choose family member")}
+  DropdownMenu(expanded=expanded,onDismissRequest={expanded=false}) {
+   members.forEach{member->DropdownMenuItem(text={Text(member[1])},onClick={onPick(member[0]);expanded=false})}
+  }
+ }
+}
 @Composable private fun VitalDialog(members:List<List<String>>,close:()->Unit,save:(Long,JSONObject,String,String,String)->Unit){
  var member by remember{mutableStateOf(members.firstOrNull()?.get(0)?:"")}
  var leftSys by remember{mutableStateOf("")};var leftDia by remember{mutableStateOf("")};var rightSys by remember{mutableStateOf("")};var rightDia by remember{mutableStateOf("")}
@@ -187,7 +195,7 @@ everyday wellbeing.",fontSize=25.sp,color=Color.White,fontWeight=FontWeight.Semi
  Text("BLOOD PRESSURE · BOTH ARMS",color=Forest,fontSize=11.sp,fontWeight=FontWeight.Bold)
  FormField("Left arm systolic · mmHg",leftSys,{leftSys=it},true);FormField("Left arm diastolic · mmHg",leftDia,{leftDia=it},true);FormField("Right arm systolic · mmHg",rightSys,{rightSys=it},true);FormField("Right arm diastolic · mmHg",rightDia,{rightDia=it},true)
  Text("OTHER VITALS",color=Forest,fontSize=11.sp,fontWeight=FontWeight.Bold)
- FormField("Pulse · bpm",pulse,{pulse=it},true);FormField("Weight · kg",weight,{weight=it},true);FormField("Height · cm",height,{height=it},true);FormField("SpO₂ · %",spo,{spo=it},true);FormField("Temperature · °C",temp,{temp=it},true);FormField("Notes",note){note=it}
+ FormField("Pulse · bpm",pulse,{pulse=it},true);FormField("Weight · kg",weight,{weight=it},true);FormField("Height · cm",height,{height=it},true);FormField("SpO₂ · %",spo,{spo=it},true);FormField("Temperature · °C",temp,{temp=it},true);FormField("Notes",note,{note=it})
  if(result.isNotBlank())Text(result,color=Forest,fontSize=12.sp)
  }},confirmButton={TextButton(onClick={if(member.isNotBlank()){try{
  val o=JSONObject();listOf("left_systolic" to leftSys,"left_diastolic" to leftDia,"right_systolic" to rightSys,"right_diastolic" to rightDia,"pulse" to pulse,"weight_kg" to weight,"height_cm" to height,"spo2" to spo,"temp_c" to temp).forEach{(k,v)->v.toDoubleOrNull()?.let{o.put(k,it)}}
@@ -205,12 +213,12 @@ everyday wellbeing.",fontSize=25.sp,color=Color.White,fontWeight=FontWeight.Semi
  val statuses=listOf("positive","negative","reactive","non_reactive","detected","not_detected","present","absent","seen","not_seen","trace","normal","abnormal","borderline","indeterminate","inconclusive","not_determined","pending","not_done","insufficient_sample","contaminated","invalid","pass","refer","susceptible","intermediate","resistant","weakly_positive","strongly_positive","equivocal","other")
  AlertDialog(onDismissRequest=close,title={Text("Add test result")},text={Column(Modifier.heightIn(max=560.dp),verticalArrangement=Arrangement.spacedBy(7.dp)){
  if(members.isNotEmpty())MemberPicker(members,member){member=it}else Text("Add a family member first.")
- FormField("Report / panel name",report){report=it};FormField("Test or observation name",parameter){parameter=it}
+ FormField("Report / panel name",report,{report=it});FormField("Test or observation name",parameter,{parameter=it})
  OutlinedButton(onClick={val c=Calendar.getInstance();DatePickerDialog(context,{_,y,m,d->date=String.format(java.util.Locale.US,"%04d-%02d-%02d",y,m+1,d)},c.get(Calendar.YEAR),c.get(Calendar.MONTH),c.get(Calendar.DAY_OF_MONTH)).show()},modifier=Modifier.fillMaxWidth()){Icon(Icons.Default.CalendarMonth,null);Spacer(Modifier.width(8.dp));Text("Collection / observation date · $date")}
  Box{OutlinedButton(onClick={kindOpen=true},modifier=Modifier.fillMaxWidth()){Text("Result format · "+kind.replaceFirstChar{it.uppercase()})};DropdownMenu(expanded=kindOpen,onDismissRequest={kindOpen=false}){listOf("quantitative","qualitative","graded","report").forEach{k->DropdownMenuItem(text={Text(k.replaceFirstChar{it.uppercase()})},onClick={kind=k;kindOpen=false})}}}
- if(kind=="quantitative"){FormField("Numeric result",value,{value=it},true);FormField("Unit (as printed on report)",unit){unit=it}}
+ if(kind=="quantitative"){FormField("Numeric result",value,{value=it},true);FormField("Unit (as printed on report)",unit,{unit=it})}
  else {Box{OutlinedButton(onClick={statusOpen=true},modifier=Modifier.fillMaxWidth()){Text("Result status · "+status.replace('_',' ').replaceFirstChar{it.uppercase()})};DropdownMenu(expanded=statusOpen,onDismissRequest={statusOpen=false}){statuses.forEach{st->DropdownMenuItem(text={Text(st.replace('_',' ').replaceFirstChar{it.uppercase()})},onClick={status=st;statusOpen=false})}}};FormField("Report wording / finding",value){value=it};if(kind=="graded")FormField("Grade / scale unit",unit){unit=it}}
- FormField("Notes / report details",note){note=it}
+ FormField("Notes / report details",note,{note=it})
  }},confirmButton={TextButton(onClick={if(member.isNotBlank()&&parameter.isNotBlank()){try{
  val payload=hashMapOf<String,Any>("parameter" to parameter,"result_kind" to kind,"recorded_date" to date,"unit" to unit,"notes" to note)
  if(kind=="quantitative"){value.toDoubleOrNull()?.let{payload["value_numeric"]=it}}else{payload["qualitative_status"]=status;if(value.isNotBlank())payload["value_text"]=value}
@@ -258,7 +266,7 @@ everyday wellbeing.",fontSize=25.sp,color=Color.White,fontWeight=FontWeight.Semi
  val context=androidx.compose.ui.platform.LocalContext.current
  AlertDialog(onDismissRequest=close,title={Text("Medicine")},text={Column(Modifier.heightIn(max=500.dp),verticalArrangement=Arrangement.spacedBy(7.dp)){
  if(members.isNotEmpty())MemberPicker(members,member){member=it}else Text("Add a family member first.")
- FormField("Medicine name",name){name=it};FormField("Dose & schedule",dose){dose=it}
+ FormField("Medicine name",name,{name=it});FormField("Dose & schedule",dose,{dose=it})
  OutlinedButton(onClick={val c=Calendar.getInstance();DatePickerDialog(context,{_,y,m,d->start=String.format(java.util.Locale.US,"%04d-%02d-%02d",y,m+1,d)},c.get(Calendar.YEAR),c.get(Calendar.MONTH),c.get(Calendar.DAY_OF_MONTH)).show()},modifier=Modifier.fillMaxWidth()){Icon(Icons.Default.CalendarMonth,null);Spacer(Modifier.width(8.dp));Text("Start date · $start")}
  OutlinedButton(onClick={val c=Calendar.getInstance();DatePickerDialog(context,{_,y,m,d->end=String.format(java.util.Locale.US,"%04d-%02d-%02d",y,m+1,d)},c.get(Calendar.YEAR),c.get(Calendar.MONTH),c.get(Calendar.DAY_OF_MONTH)).show()},modifier=Modifier.fillMaxWidth()){Icon(Icons.Default.CalendarMonth,null);Spacer(Modifier.width(8.dp));Text(if(end.isBlank())"Set end date (optional)" else "End date · $end")}
  FormField("Notes",notes){notes=it}
