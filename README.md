@@ -37,3 +37,22 @@ Derived values and reference classifications are informational, not diagnoses. U
 
 ## Build status
 The repository has not been built and instrumented on an Android device in this environment. Run Gradle sync/build and test the Python engine before production use.
+
+## Completion work in progress (2026-10-30)
+
+- HealthDb uses the SQLCipher Android helper and a random database passphrase wrapped by Android Keystore.
+- A one-time migration exports the existing plaintext database to a temporary encrypted database, checks integrity and per-table row counts, then performs a recoverable file replacement. The old database is retained until validation succeeds.
+- A local user-ID/password account-creation and login gate now protects entry to the family workspace. Password-attempt throttling is applied.
+- A scientific analytics destination plots all saved date-grouped vital observations (blood pressure, pulse, weight, SpO2, temperature) and reports sample counts, means, standard deviations, and ranges. Missing values are excluded rather than imputed.
+- Offline one-time and periodic WorkManager reminders have a management screen and generic lock-screen notification content.
+- Android build/unit-test/emulator CI and instrumentation tests for encrypted transfer and database migration have been added.
+
+### Still incomplete / not yet verified
+
+- Native biometric unlock is not yet wired to SQLCipher key release.
+- Selective encrypted backup export/import screens, import preview, member mapping, duplicate-safe merge, and selective PDF options still need UI integration.
+- Reminder metadata is not yet linked to medicine records/member schedules; WorkManager intervals are approximate and not suitable as exact medication alarms.
+- Structured numeric lab trends need per-analyte/unit visualizations; unstructured lab JSON is not silently interpreted.
+- No CI run or physical Android-device test has yet been confirmed for this branch. Do not treat this branch as a production release until CI passes and migration/authentication/restore flows are device-tested.
+
+The analytics dashboard is descriptive, not diagnostic. It preserves native units and does not invent clinical thresholds.
