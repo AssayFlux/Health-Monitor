@@ -10,9 +10,14 @@ Open this repository root in Android Studio, allow Gradle sync, then run the `:a
 - `app/src/main/python`: Python calculation engine, ranges, diagnostic catalogue and units.
 - No Flask server, HTML templates, CSS, JavaScript website, WebView, or website runtime.
 - No email, phone-number, cloud account, or online authentication dependency.
+- The SQLite database is created by Android's SQLiteOpenHelper in the app's private internal data directory. It is not placed in shared storage and is not uploaded by this app.
 
-## Data
-Family profiles, vitals, laboratory reports, medicines and anthropometry are currently stored in the app's private SQLite database. Android app data is removed when the app is uninstalled unless the user has separately exported it.
+## Local data privacy
+- Android app sandbox permissions restrict the database and app-private files to this app's Linux UID on a normal, non-rooted device.
+- Android cloud backup and device-to-device data extraction are disabled in the manifest and explicit extraction rules. Moving records between phones must use the app's intended export/import workflow.
+- App screens set Android `FLAG_SECURE` to block screenshots, screen recording and recent-app task previews.
+- Cleartext network traffic is disabled. The app does not request internet access as part of its current manifest.
+- These protections do **not** encrypt the SQLite database file itself. A rooted/compromised device, forensic access, or a future app vulnerability can expose plaintext data. SQLCipher/Keystore-backed database encryption and an authenticated app lock are still required before storing highly sensitive real patient records.
 
 ## Offline security and backup implementation status
 
@@ -31,4 +36,4 @@ The intended user flow is: local user ID + password; optional Android strong bio
 Derived values and reference classifications are informational, not diagnoses. Use the reference interval printed by the reporting laboratory and consult a qualified clinician. Verify all calculations and workflows before clinical use.
 
 ## Build status
-The repository has not been built or instrumented on an Android device in this environment. Run Gradle sync/build and test the Python engine before production use.
+The repository has not been built and instrumented on an Android device in this environment. Run Gradle sync/build and test the Python engine before production use.
