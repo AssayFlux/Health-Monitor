@@ -84,7 +84,7 @@ everyday wellbeing.",fontSize=25.sp,color=Color.White,fontWeight=FontWeight.Semi
   }
  }}
  when(dialog){ "person"->PersonDialog({dialog=""},{db.addMember(it[0],it[1],it[2],it[3],it[4]);refresh++})
- "vitals"->VitalDialog(members,{dialog=""},{mid,data,notes->db.addVital(mid,data,notes);refresh++})
+ "vitals"->VitalDialog(members,{dialog=""},{mid,data,notes,date,period->db.addVital(mid,data,notes,date,period);refresh++})
  "lab"->LabDialog(members,{dialog=""},{mid,name,json->db.addLab(mid,name,json);refresh++})
  "medicine"->MedicineDialog(members,{dialog=""},{mid,n,d,s,e,no->db.addMedicine(mid,n,d,s,e,no);refresh++})}
 }
@@ -114,8 +114,7 @@ everyday wellbeing.",fontSize=25.sp,color=Color.White,fontWeight=FontWeight.Semi
  if(result.isNotBlank())Text(result,color=Forest,fontSize=12.sp)
  }},confirmButton={TextButton(onClick={if(member.isNotBlank()){try{
  val o=JSONObject();listOf("left_systolic" to leftSys,"left_diastolic" to leftDia,"right_systolic" to rightSys,"right_diastolic" to rightDia,"pulse" to pulse,"weight_kg" to weight,"height_cm" to height,"spo2" to spo,"temp_c" to temp).forEach{(k,v)->v.toDoubleOrNull()?.let{o.put(k,it)}}
- val bp=Python.getInstance().getModule("observation_engine").callAttr("blood_pressure_comparison_json",hashMapOf("left_systolic" to (leftSys.toDoubleOrNull()?:0.0),"right_systolic" to (rightSys.toDoubleOrNull()?:0.0))).toString()
- val bpJson=JSONObject(bp);val diff=if(bpJson.optBoolean("available"))" · Inter-arm systolic difference ${bpJson.optString("systolic_difference")} mmHg" else ""
+ val diff=if(leftSys.toDoubleOrNull()!=null && rightSys.toDoubleOrNull()!=null){val bp=Python.getInstance().getModule("observation_engine").callAttr("blood_pressure_comparison_json",hashMapOf("left_systolic" to leftSys.toDouble(),"right_systolic" to rightSys.toDouble())).toString();val bpJson=JSONObject(bp);" · Inter-arm systolic difference ${bpJson.optString("systolic_difference")} mmHg"}else ""
  save(member.toLong(),o,note,date,period);result="Saved $date$diff";close()
  }catch(e:Exception){result="Unable to save: ${e.message}"}}}){Text("Save vitals")}},dismissButton={TextButton(onClick=close){Text("Cancel")}})
 }
