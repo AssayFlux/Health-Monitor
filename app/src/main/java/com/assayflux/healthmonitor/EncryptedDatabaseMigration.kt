@@ -31,7 +31,7 @@ object EncryptedDatabaseMigration {
         temp.delete()
         val plain = CipherDb.openDatabase(source.absolutePath, byteArrayOf(), null, CipherDb.OPEN_READWRITE, null)
         try {
-            val key = passphrase.joinToString("") { "%02x".format(it) }
+            val key = String(passphrase, Charsets.UTF_8)
             plain.execSQL("ATTACH DATABASE ? AS encrypted KEY ?", arrayOf(temp.absolutePath, key))
             plain.rawQuery("SELECT sqlcipher_export('encrypted')", null).use { }
             plain.execSQL("DETACH DATABASE encrypted")
