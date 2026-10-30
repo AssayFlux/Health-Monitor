@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -47,12 +48,12 @@ private val vintagePalettes=listOf(
  VintagePalette("rose","Victorian Rose & Parchment",Color(0xFFF6EFE6),Color(0xFFE5D7CA),Color(0xFF714B50),Color(0xFFB98783),Color(0xFF9A805C),Color(0xFF302F29))
 )
 private var activeVintagePalette by mutableStateOf(vintagePalettes.first())
-private val Ivory get()=activeVintagePalette.ivory
-private val Cream get()=activeVintagePalette.cream
-private val Forest get()=activeVintagePalette.forest
-private val Sage get()=activeVintagePalette.sage
-private val Clay get()=activeVintagePalette.clay
-private val Ink get()=activeVintagePalette.ink
+val Ivory get()=activeVintagePalette.ivory
+val Cream get()=activeVintagePalette.cream
+val Forest get()=activeVintagePalette.forest
+val Sage get()=activeVintagePalette.sage
+val Clay get()=activeVintagePalette.clay
+val Ink get()=activeVintagePalette.ink
 
 class HealthDb(c:Context, passphrase:ByteArray):SQLiteOpenHelper(c,"health_monitor.db",passphrase,null,5,0,null,null,false){
  override fun onCreate(d:SQLiteDatabase){
