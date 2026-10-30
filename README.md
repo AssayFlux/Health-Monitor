@@ -1,58 +1,237 @@
-# Health Monitor — Native Android
+# Health Monitor
 
-A local-first Android family health record app. The complete user interface is Kotlin + Jetpack Compose. Python 3.11 is embedded with Chaquopy and is used only for calculations and clinical reference helpers.
+**A native, offline-first Android application for managing family health records.**
 
-## Open
-Open this repository root in Android Studio, allow Gradle sync, then run the `:app` configuration on an Android device or emulator.
+Health Monitor brings personal health observations, laboratory reports, medicines, appointments, reminders, and descriptive analytics into one on-device workspace. It is built with **Kotlin and Jetpack Compose**, with a Python calculation layer embedded through Chaquopy.
 
-## Architecture
-- `app/src/main/java`: native Kotlin UI and on-device SQLite persistence.
-- `app/src/main/python`: Python calculation engine, ranges, diagnostic catalogue and units.
-- No Flask server, HTML templates, CSS, JavaScript website, WebView, or website runtime.
-- No email, phone-number, cloud account, or online authentication dependency.
-- The SQLite database is created by Android's SQLiteOpenHelper in the app's private internal data directory. It is not placed in shared storage and is not uploaded by this app.
+> **Project status:** Active development. Core Android screens and encrypted database foundations are present, but several security and data-management workflows remain incomplete. This repository is not yet a clinically validated or production-ready medical-record system. See [Implementation status](#implementation-status).
 
-## Local data privacy
-- Android app sandbox permissions restrict the database and app-private files to this app's Linux UID on a normal, non-rooted device.
-- Android cloud backup and device-to-device data extraction are disabled in the manifest and explicit extraction rules. Moving records between phones must use the app's intended export/import workflow.
-- App screens set Android `FLAG_SECURE` to block screenshots, screen recording and recent-app task previews.
-- Cleartext network traffic is disabled. The app does not request internet access as part of its current manifest.
-- These protections do **not** encrypt the SQLite database file itself. A rooted/compromised device, forensic access, or a future app vulnerability can expose plaintext data. SQLCipher/Keystore-backed database encryption and an authenticated app lock are still required before storing highly sensitive real patient records.
+---
 
-## Offline security and backup implementation status
+## Contents
 
-`SecureTransfer.kt` adds the first cryptographic foundation for offline backups:
-- A fresh 160-bit random import code can be generated for each export.
-- PBKDF2-HMAC-SHA-256 derives a key from the separate import code.
-- AES-256-GCM encrypts and authenticates the ZIP payload with a fresh salt and nonce.
-- The ZIP manifest is versioned and checked on import; unsafe paths, duplicate entries and oversized expanded archives are rejected.
-- `LocalCredentialStore` provides salted PBKDF2 password-verifier primitives for a device-local user ID/password.
+- [Highlights](#highlights)
+- [Technology stack](#technology-stack)
+- [Repository structure](#repository-structure)
+- [Getting started](#getting-started)
+- [Data model](#data-model)
+- [Privacy and security](#privacy-and-security)
+- [Analytics and clinical interpretation](#analytics-and-clinical-interpretation)
+- [Reminders](#reminders)
+- [Build and test](#build-and-test)
+- [Implementation status](#implementation-status)
+- [Limitations and responsible use](#limitations-and-responsible-use)
+- [Contributing](#contributing)
 
-**These primitives are not yet wired into the app's login screens, Android biometric prompt, database, or Import/Export UI.** The existing SQLite database is not yet encrypted at rest. Do not use this build for sensitive real-world patient records until SQLCipher/database migration, Keystore-backed key protection, biometric activation, login lockout/session policy, and the complete backup/import UI have been implemented and security-tested.
+## Highlights
 
-The intended user flow is: local user ID + password; optional Android strong biometric unlock; select family members and record categories; export a `.hmbackup` file and share its generated code separately; import only inside Health Monitor, verify/decrypt, preview, then explicitly confirm merge. Import codes must never be the local account password.
+The application is designed around a local-first family health record:
 
-## Security and reminder foundations added in this branch\n\n- `LocalKeyVault` wraps a random 256-bit database passphrase using an Android Keystore AES-GCM key. It refuses to silently generate a replacement if initialization was interrupted. It is a key-management primitive; SQLCipher is added as a dependency but the current `HealthDb` still uses Android plaintext SQLite until a validated migration and full DB API conversion are completed.\n- `LocalAuthPolicy` adds persistent progressive throttling and a two-minute session-expiry policy helper. The current Compose UI is not yet gated by login, and biometric unlock is not yet wired to the UI.\n- `ReminderScheduler` schedules offline one-shot WorkManager reminders and emits generic notification text. The app still needs reminder-entry screens, runtime notification-permission onboarding, recurring-dose logic, and integration with stored medicine schedules.\n\nThese additions are foundations, not a declaration that database encryption, login, biometrics, or reminder workflows are complete. Do not store real patient records until the SQLCipher migration and app-level authentication gate are integrated and device-tested.\n\n## Clinical safety
-Derived values and reference classifications are informational, not diagnoses. Use the reference interval printed by the reporting laboratory and consult a qualified clinician. Verify all calculations and workflows before clinical use.
+- **People and profiles** — maintain separate records for family members.
+- **Vitals** — record blood pressure (including left/right arm readings), pulse, weight, height, oxygen saturation, temperature, dates, and notes.
+- **Laboratory reports** — store named reports and structured clinical test observations, including units and reference intervals where supplied.
+- **Medicines** — maintain medicine names, dose details, dates, and notes.
+- **Appointments and reminders** — manage appointment records and local scheduled notifications.
+- **Analytics** — explore saved measurements using date-grouped charts and descriptive statistics.
+- **PDF reports** — generate reports on-device using the native PDF implementation.
+- **Vintage visual themes** — choose from four warm, restrained palettes in Settings.
 
-## Build status
-The repository has not been built and instrumented on an Android device in this environment. Run Gradle sync/build and test the Python engine before production use.
+The interface is native Android UI. The project does not use a website runtime or WebView.
 
-## Completion work in progress (2026-10-30)
+## Technology stack
 
-- HealthDb uses the SQLCipher Android helper and a random database passphrase wrapped by Android Keystore.
-- A one-time migration exports the existing plaintext database to a temporary encrypted database, checks integrity and per-table row counts, then performs a recoverable file replacement. The old database is retained until validation succeeds.
-- A local user-ID/password account-creation and login gate now protects entry to the family workspace. Password-attempt throttling is applied.
-- A scientific analytics destination plots all saved date-grouped vital observations (blood pressure, pulse, weight, SpO2, temperature) and reports sample counts, means, standard deviations, and ranges. Missing values are excluded rather than imputed.
-- Offline one-time and periodic WorkManager reminders have a management screen and generic lock-screen notification content.
-- Android build/unit-test/emulator CI and instrumentation tests for encrypted transfer and database migration have been added.
+| Area | Implementation |
+|---|---|
+| Platform | Android, minimum SDK 26 |
+| Language | Kotlin |
+| UI | Jetpack Compose and Material 3 |
+| Database | SQLCipher for Android |
+| Key protection | Android Keystore-backed AES-GCM key wrapping |
+| Background work | AndroidX WorkManager |
+| Biometric foundation | AndroidX Biometric and a Keystore-backed key helper |
+| Calculation layer | Embedded Python 3.11 via Chaquopy |
+| Build language level | Java 17 / Kotlin JVM target 17 |
+| Package | `com.assayflux.healthmonitor` |
 
-### Still incomplete / not yet verified
+## Repository structure
 
-- Native biometric unlock is not yet wired to SQLCipher key release.
-- Selective encrypted backup export/import screens, import preview, member mapping, duplicate-safe merge, and selective PDF options still need UI integration.
-- Reminder metadata is not yet linked to medicine records/member schedules; WorkManager intervals are approximate and not suitable as exact medication alarms.
-- Structured numeric lab trends need per-analyte/unit visualizations; unstructured lab JSON is not silently interpreted.
-- No CI run or physical Android-device test has yet been confirmed for this branch. Do not treat this branch as a production release until CI passes and migration/authentication/restore flows are device-tested.
+```text
+.
+├── app/
+│   └── src/main/
+│       ├── java/com/assayflux/healthmonitor/
+│       │   ├── MainActivity.kt
+│       │   ├── EncryptedDatabaseMigration.kt
+│       │   ├── LocalKeyVault.kt
+│       │   ├── LocalAuthGate.kt
+│       │   ├── BiometricDatabaseKey.kt
+│       │   ├── SecureTransfer.kt
+│       │   ├── ReminderScheduler.kt
+│       │   └── NativePdfExport.kt
+│       └── python/
+└── docs/
+    └── UI_DESIGN_AND_DELIVERY.md
+```
 
-The analytics dashboard is descriptive, not diagnostic. It preserves native units and does not invent clinical thresholds.
+File names and responsibilities may evolve as implementation is completed.
+
+## Getting started
+
+### Prerequisites
+
+- Android Studio with Android SDK support for **API 36**
+- JDK 17
+- Android SDK Platform 36 and the required build tools
+- An Android device or emulator running **Android 8.0 (API 26) or later**
+- Git
+
+Chaquopy downloads and configures its embedded Python runtime during the Gradle build. Allow Gradle to download dependencies on the first sync.
+
+### Open and run
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/AssayFlux/Health-Monitor.git
+   cd Health-Monitor
+   ```
+2. Open the project root in Android Studio.
+3. Allow Gradle sync to finish and install any requested SDK components.
+4. Select the `app` run configuration.
+5. Run on an Android 8.0+ device or emulator.
+
+From a shell, the standard Gradle tasks are:
+
+```bash
+./gradlew :app:assembleDebug
+./gradlew :app:testDebugUnitTest
+./gradlew :app:connectedDebugAndroidTest
+```
+
+The connected test task requires a running emulator or attached Android device. A successful build alone does not establish device-level security or clinical correctness.
+
+## Data model
+
+The local database currently contains these principal tables:
+
+| Table | Purpose |
+|---|---|
+| `members` | Family-member profiles |
+| `vitals` | Dated vital-sign observations |
+| `labs` | Laboratory report records and stored report values |
+| `medicines` | Medicine details |
+| `clinical_tests` | Structured clinical test observations |
+| `anthropometry` | Dated anthropometric measurements |
+| `appointments` | Scheduled appointment records |
+| `reminders` | Reminder definitions and scheduling metadata |
+
+Records are stored locally in the app's private database. The schema is versioned and the legacy plaintext-to-SQLCipher migration includes integrity and per-table row-count checks before replacing the original database. The migration retains a recoverable copy of the original database until validation succeeds.
+
+## Privacy and security
+
+Health information is sensitive. The project is being developed with an offline-first and data-minimization approach.
+
+### Implemented foundations
+
+- **SQLCipher database:** the app's database helper uses SQLCipher rather than Android's plaintext SQLite helper.
+- **Keystore-wrapped database key:** a randomly generated database passphrase is protected by an Android Keystore AES-GCM key.
+- **Legacy migration:** an existing plaintext database is exported to a temporary encrypted database, validated, and replaced through a recoverable file operation. The migration verifies database integrity and row counts for the known tables, including appointments and reminders.
+- **Encrypted backup primitives:** the secure-transfer helper provides PBKDF2-HMAC-SHA-256 key derivation and AES-256-GCM authenticated encryption for archive payloads, plus archive-manifest and ZIP-entry validation.
+- **Local credential primitives:** password-verifier support and progressive authentication throttling are present.
+- **Android app sandbox:** database files are kept in app-private storage.
+- **Reduced data exposure:** cleartext traffic is disabled; Android backup/data-extraction rules and secure-window handling are configured in the app.
+
+### Important work still required
+
+A security primitive is not the same as a complete user-facing security workflow. In particular:
+
+- Native biometric authentication is **not yet fully connected** to release of the SQLCipher database key.
+- The selective encrypted backup and restore experience, including import preview, profile mapping, duplicate handling, and transactional merge, is not complete.
+- Account recovery, reinstall/device-loss recovery, and a complete security review need to be addressed before real-world deployment.
+- Security behavior must be tested on supported physical Android devices, not inferred from compilation or emulator tests.
+
+The app is intended to operate locally; the current project does not provide a cloud account, server-side identity, email/phone verification, or cross-device synchronization.
+
+## Analytics and clinical interpretation
+
+The analytics area is intended to present observations transparently rather than diagnose. Current dashboard work includes time-based vital-sign visualizations and descriptive summaries such as sample counts, means, standard deviations, and observed ranges.
+
+Scientific presentation principles:
+
+- Preserve the units and dates associated with source measurements.
+- Do not silently impute missing values.
+- Keep measurements with different units or analytes in separate series.
+- Show sample counts and the time period represented.
+- Distinguish descriptive statistics from clinical reference intervals.
+- Do not present charts or automated classifications as a diagnosis.
+
+Structured numeric laboratory trends and complete analyte/unit-specific visualizations remain an area of ongoing development. Stored report JSON should not be interpreted as a numeric result unless its structure and units are explicitly understood.
+
+## Reminders
+
+The project uses WorkManager for local background scheduling and notification delivery. WorkManager periodic jobs are inexact: execution can be delayed by Android battery, background-work, and system scheduling policies. They must **not** be relied on as exact-time medication alarms or as a substitute for prescribed care.
+
+Medicine-linked reminder workflows, recurring-dose behavior, notification-permission onboarding, and complete appointment integration still require further implementation and device testing.
+
+## Build and test
+
+The repository includes Android unit/instrumentation test infrastructure and CI workflows. Check the **Actions** tab for the status of the latest run on the branch you intend to use.
+
+Before treating a build as release-ready, verify at minimum:
+
+1. Gradle build and unit tests.
+2. Migration from a populated legacy database, including rollback/failure scenarios.
+3. SQLCipher key lifecycle and authentication behavior.
+4. Backup decryption, malformed archive rejection, duplicate handling, and transactional restore.
+5. Notifications and file import/export on supported Android versions.
+6. Biometric enrollment, cancellation, lockout, and password fallback on physical devices.
+
+Do not infer that a workflow is complete simply because its helper class or dependency exists.
+
+## Implementation status
+
+**Implemented or present in the current codebase**
+
+- Native Kotlin/Jetpack Compose application and local health-record screens.
+- SQLCipher-backed database helper and Keystore-wrapped database passphrase.
+- Recoverable legacy database migration with integrity and table row-count validation.
+- Local user-ID/password gate and authentication-throttling foundations.
+- AES-GCM/PBKDF2 encrypted archive primitives and archive validation.
+- WorkManager reminder foundations and a reminder-management screen.
+- Native PDF generation.
+- Descriptive vital-sign analytics and four selectable vintage palettes.
+- Android build, unit-test, and instrumentation-test workflow infrastructure.
+
+**Still incomplete or requiring verification**
+
+- BiometricPrompt-to-SQLCipher-key integration using an authenticated cryptographic object.
+- End-to-end selective encrypted backup and restore screens.
+- Import preview, incoming-member mapping, duplicate-resolution choices, and transactional record merge.
+- Selective profile/category/date filtering for PDF export.
+- Full medicine/appointment-linked recurring reminder behavior and notification onboarding.
+- Complete structured laboratory and anthropometric trend analysis with validated units.
+- Broader migration equivalence and failure-injection tests.
+- Confirmed green CI for the current commit and physical-device validation of security-sensitive flows.
+
+For the detailed visual system, screen map, acceptance criteria, and delivery notes, see [UI design and delivery specification](docs/UI_DESIGN_AND_DELIVERY.md).
+
+## Limitations and responsible use
+
+Health Monitor is a personal record-keeping and informational tool under active development. It is not a medical device, electronic health record certified for clinical practice, emergency service, or replacement for a qualified healthcare professional.
+
+- Confirm entries against original reports and clinical records.
+- Use the reference interval and units supplied by the reporting laboratory.
+- Seek professional medical advice for interpretation or treatment decisions.
+- Do not rely on reminders as the sole method for time-critical medication administration.
+- Do not use pre-release builds to store sensitive real patient information until the remaining security workflows have been completed and independently tested.
+
+## Contributing
+
+Contributions are welcome. For changes involving database schema, encryption, migration, authentication, clinical calculations, or reminders:
+
+- Include tests for normal, invalid, and failure/rollback paths.
+- Preserve source units and provenance for clinical measurements.
+- Avoid logging passwords, import codes, passphrases, or health-record contents.
+- Document security assumptions and any migration implications.
+- Keep clinical language descriptive and avoid unsupported diagnostic claims.
+
+Please open an issue to discuss substantial changes before starting a large implementation.
