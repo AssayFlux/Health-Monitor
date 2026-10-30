@@ -2,8 +2,13 @@
 
 ## Visual system
 - Native Android Jetpack Compose; no WebView.
-- Warm clinical palette: ivory background (#F3EFE5), cream cards (#FAF8F2), forest-green primary (#34483E), sage accents (#A9B19F), clay secondary (#A16F5D), ink text (#302F29).
-- Rounded cards and controls, generous spacing, readable labels, restrained decoration, and clear empty/error states.
+- Vintage visual direction: subtle paper-like warmth, clean rounded cards, quiet borders, generous spacing, readable labels, restrained decoration, and clear empty/error states.
+- Four selectable palettes in Settings; Antique Botanical is the default:
+  - Antique Botanical: parchment #F5F0E4, cream #E7DDC8, forest #35483A, sage #66745B, antique brass #B18A55.
+  - French Apothecary: parchment #F4EBDD, cream #DED0B9, burgundy #783F45, slate blue #778795, antique taupe #A58B68.
+  - Heritage Olive & Terracotta: parchment #F3EBDD, cream #DCCBB1, deep brown #493D32, olive #73734D, terracotta #A65F48.
+  - Victorian Rose & Parchment: parchment #F6EFE6, cream #E5D7CA, plum #714B50, rose #B98783, antique gold #9A805C.
+- All palettes retain dark, high-contrast text and consistent semantic colours across navigation, cards, forms and charts.
 - Bottom navigation: Home, People, Vitals, Reports, Analytics, Reminders, More.
 
 ## Screen map
@@ -66,6 +71,7 @@
 - CI build, unit tests and emulator instrumentation tests must pass. Physical-device biometric, notification, file-picker and restore tests remain a separate release gate.
 
 ## Implementation status (2026-10-30)
+- Vintage theme selection UI added with four palette choices; Antique Botanical is the initial default. Surface treatment is warm and softly rounded; the current implementation uses flat cream fills rather than a raster paper texture.
 - Existing native screens: local password gate, Home, People, Vitals, Reports/Medicines, Analytics and Reminders.
 - Existing primitives: SQLCipher database, local Keystore envelope, biometric-key helper, AES-GCM/PBKDF2 archive helper, migration helper and native PDF writer.
 - Not yet represented as completed merely because primitives exist: biometric prompt-to-database-key integration; selectable archive export UI; import preview and duplicate/profile mapping; transactional merge/restore; selective PDF UI.
