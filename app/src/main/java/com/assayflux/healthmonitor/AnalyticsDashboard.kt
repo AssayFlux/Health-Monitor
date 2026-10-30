@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.max
 import kotlin.math.min
+import org.json.JSONObject
 
 private data class TrendPoint(val label: String, val value: Float)
 
@@ -63,10 +64,34 @@ fun AnalyticsDashboard(db: HealthDb, refreshToken: Int) {
         val labCount = db.count("labs")
         val anthropometryCount = db.count("anthropometry")
         val medicineCount = db.count("medicines")
+        val labSeries = db.rows("SELECT m.name,COALESCE(l.recorded_at,''),l.values_json FROM labs l JOIN members m ON m.id=l.member_id ORDER BY l.recorded_at")
+            .flatMap { row ->
+                try {
+                    val json=JSONObject(row[2])
+                    val parameter=json.optString("parameter","").trim()
+                    val unit=json.optString("unit","").trim()
+                    val value=if(json.isNull("value_numeric")) null else json.optDouble("value_numeric").takeIf{it.isFinite()}
+                    val date=json.optString("recorded_date").ifBlank{row[1].take(10)}
+                    if(parameter.isNotBlank() && value!=null) listOf(Triple("$parameter · $unit",date,TrendPoint(date,value.toFloat()))) else emptyList()
+                } catch (_:Exception) { emptyList() }
+            }.groupBy { it.first }.mapValues { (_,items)->items.map{it.third}.sortedBy{it.label} }
+        val anthropometrySeries = db.rows("SELECT m.name,a.measurement_date,a.values_json FROM anthropometry a JOIN members m ON m.id=a.member_id ORDER BY a.measurement_date")
+            .flatMap { row ->
+                try {
+                    val json=JSONObject(row[2])
+                    val measurements=json.optJSONObject("measurements") ?: JSONObject()
+                    val derived=json.optJSONObject("derived") ?: JSONObject()
+                    val candidates=listOf("weight_kg" to "Weight · kg","height_cm" to "Height · cm","waist_cm" to "Waist · cm","hip_cm" to "Hip · cm")
+                    val direct=candidates.mapNotNull { (key,label)-> if(!measurements.isNull(key)) Triple(label,row[1],TrendPoint(row[1],measurements.optDouble(key).toFloat())) else null }
+                    val bmi=derived.optJSONObject("bmi")
+                    val bmiPoint=if(bmi!=null && !bmi.isNull("value")) listOf(Triple("BMI · kg/m²",row[1],TrendPoint(row[1],bmi.optDouble("value").toFloat()))) else emptyList()
+                    direct+bmiPoint
+                } catch (_:Exception) { emptyList() }
+            }.groupBy { it.first }.mapValues { (_,items)->items.map{it.third}.sortedBy{it.label} }
         val clinicalCount = db.count("clinical_tests")
         val memberCount = db.count("members")
         val vitalCount = db.count("vitals")
-        AnalyticsSnapshot(bp,pulse,weight,oxygen,temperature,tests,labCount,anthropometryCount,medicineCount,clinicalCount,memberCount,vitalCount)
+        AnalyticsSnapshot(bp,pulse,weight,oxygen,temperature,tests,labCount,anthropometryCount,medicineCount,clinicalCount,memberCount,vitalCount,labSeries,anthropometrySeries)
     }
 
     Column(
@@ -91,6 +116,14 @@ fun AnalyticsDashboard(db: HealthDb, refreshToken: Int) {
         ScientificLineChart("Body weight", "kg · daily mean", series.weight)
         ScientificLineChart("Oxygen saturation", "% · daily mean", series.oxygen)
         ScientificLineChart("Body temperature", "°C · daily mean", series.temperature)
+        Text("Laboratory trends · numeric results only",color=Ink,fontWeight=FontWeight.SemiBold,fontSize=17.sp)
+        Text("Each analyte and unit is plotted separately. Qualitative results and missing values are not combined.",color=Ink.copy(alpha=.65f),fontSize=11.sp)
+        series.labSeries.forEach { (label,points)->ScientificLineChart(label,"Recorded numeric results",points) }
+        if(series.labSeries.isEmpty()) Text("No structured numeric laboratory results are available to chart yet.",color=Ink.copy(alpha=.6f),fontSize=12.sp)
+        Text("Anthropometric trends",color=Ink,fontWeight=FontWeight.SemiBold,fontSize=17.sp)
+        Text("Measured values and derived BMI are kept separate; pediatric percentiles are not inferred.",color=Ink.copy(alpha=.65f),fontSize=11.sp)
+        series.anthropometrySeries.forEach { (label,points)->ScientificLineChart(label,"Recorded measurements",points) }
+        if(series.anthropometrySeries.isEmpty()) Text("No structured anthropometric measurements are available to chart yet.",color=Ink.copy(alpha=.6f),fontSize=12.sp)
         Surface(color=Cream, shape=RoundedCornerShape(18.dp)) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement=Arrangement.spacedBy(8.dp)) {
                 Text("Clinical test classification", color=Ink, fontWeight=FontWeight.SemiBold)
@@ -106,7 +139,8 @@ private data class AnalyticsSnapshot(
     val bp: List<TrendPoint>, val pulse: List<TrendPoint>, val weight: List<TrendPoint>,
     val oxygen: List<TrendPoint>, val temperature: List<TrendPoint>,
     val testStatuses: List<List<String>>, val labs: Int, val anthropometry: Int,
-    val medicines: Int, val clinical: Int, val members: Int, val vitals: Int
+    val medicines: Int, val clinical: Int, val members: Int, val vitals: Int,
+    val labSeries: Map<String,List<TrendPoint>>, val anthropometrySeries: Map<String,List<TrendPoint>>
 )
 
 @Composable
