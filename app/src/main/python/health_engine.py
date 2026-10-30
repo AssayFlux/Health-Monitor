@@ -77,3 +77,12 @@ def classify_test(key,value=None,text_value=None):
 
 def engine_info():
     return {"engine":"Python","version":"1.1","catalogue_tests":len(diagnostics.TEST_LOOKUP),"units":len(units.UNITS)}
+
+
+def calculate_vitals_json(values):
+    import json
+    return json.dumps(calculate_vitals(values), allow_nan=False)
+
+def calculate_labs_json(values, age=None, sex="M"):
+    import json
+    return json.dumps(calculate_labs(values, age, sex), allow_nan=False)
