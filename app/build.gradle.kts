@@ -36,4 +36,7 @@ dependencies {
     implementation("net.zetetic:sqlcipher-android:4.19.1@aar")
     implementation("androidx.sqlite:sqlite:2.7.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
 }

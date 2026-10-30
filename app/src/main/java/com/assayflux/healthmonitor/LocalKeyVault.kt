@@ -38,7 +38,7 @@ class LocalKeyVault {
         check(prefs.edit().putBoolean("key_initialization_started", true).commit()) {
             "Could not persist database key setup state."
         }
-        val passphrase = ByteArray(32).also(SecureRandom()::nextBytes)
+        val randomKey = ByteArray(32).also(SecureRandom()::nextBytes)\n        val passphrase = Base64.encodeToString(randomKey, Base64.NO_WRAP).toByteArray(Charsets.UTF_8)\n        randomKey.fill(0)
         try {
             val envelope = wrap(passphrase)
             check(prefs.edit().putString(KEY, envelope).commit()) {

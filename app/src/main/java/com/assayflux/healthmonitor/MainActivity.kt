@@ -2,9 +2,13 @@ package com.assayflux.healthmonitor
 
 import android.content.ContentValues
 import android.content.Context
-import android.database.sqlite.SQLiteDatabase
-import android.database.sqlite.SQLiteOpenHelper
+import net.zetetic.database.sqlcipher.SQLiteDatabase
+import net.zetetic.database.sqlcipher.SQLiteOpenHelper
 import android.os.Bundle
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import android.app.DatePickerDialog
 import java.util.Calendar
 import androidx.activity.ComponentActivity
@@ -39,7 +43,7 @@ private val Ivory=Color(0xFFF3EFE5); private val Cream=Color(0xFFFAF8F2)
 private val Forest=Color(0xFF34483E); private val Sage=Color(0xFFA9B19F)
 private val Clay=Color(0xFFA16F5D); private val Ink=Color(0xFF302F29)
 
-class HealthDb(c:Context):SQLiteOpenHelper(c,"health_monitor.db",null,3){
+class HealthDb(c:Context, passphrase:ByteArray):SQLiteOpenHelper(c,"health_monitor.db",passphrase,null,4,0,null,null,false){
  override fun onCreate(d:SQLiteDatabase){
   d.execSQL("CREATE TABLE members(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,dob TEXT,sex TEXT,blood TEXT,height REAL,notes TEXT)")
   d.execSQL("CREATE TABLE vitals(id INTEGER PRIMARY KEY AUTOINCREMENT,member_id INTEGER NOT NULL,recorded_at TEXT DEFAULT CURRENT_TIMESTAMP,measurement_date TEXT,time_of_day TEXT,systolic REAL,diastolic REAL,left_systolic REAL,left_diastolic REAL,right_systolic REAL,right_diastolic REAL,pulse REAL,weight REAL,height REAL,spo2 REAL,temp REAL,notes TEXT)")
@@ -47,8 +51,9 @@ class HealthDb(c:Context):SQLiteOpenHelper(c,"health_monitor.db",null,3){
   d.execSQL("CREATE TABLE medicines(id INTEGER PRIMARY KEY AUTOINCREMENT,member_id INTEGER NOT NULL,name TEXT NOT NULL,dose TEXT,start_date TEXT,end_date TEXT,notes TEXT)")
   d.execSQL("CREATE TABLE clinical_tests(id INTEGER PRIMARY KEY AUTOINCREMENT,member_id INTEGER NOT NULL,recorded_at TEXT DEFAULT CURRENT_TIMESTAMP,category TEXT,parameter TEXT,value_text TEXT,value_numeric REAL,unit TEXT,ref_low REAL,ref_high REAL,status TEXT,notes TEXT)")
   d.execSQL("CREATE TABLE anthropometry(id INTEGER PRIMARY KEY AUTOINCREMENT,member_id INTEGER NOT NULL,measurement_date TEXT NOT NULL,recorded_at TEXT DEFAULT CURRENT_TIMESTAMP,values_json TEXT NOT NULL)")
+  d.execSQL("CREATE TABLE reminders(id TEXT PRIMARY KEY,member_id INTEGER,label TEXT NOT NULL,kind TEXT NOT NULL,interval_minutes INTEGER NOT NULL,is_repeating INTEGER NOT NULL,active INTEGER NOT NULL DEFAULT 1,created_at TEXT DEFAULT CURRENT_TIMESTAMP)")
  }
- override fun onUpgrade(d:SQLiteDatabase,o:Int,n:Int){if(o<2){listOf("measurement_date TEXT","time_of_day TEXT","left_systolic REAL","left_diastolic REAL","right_systolic REAL","right_diastolic REAL").forEach{d.execSQL("ALTER TABLE vitals ADD COLUMN $it")};d.execSQL("UPDATE vitals SET measurement_date=date(recorded_at),time_of_day='unknown' WHERE measurement_date IS NULL")};if(o<3){d.execSQL("CREATE TABLE anthropometry(id INTEGER PRIMARY KEY AUTOINCREMENT,member_id INTEGER NOT NULL,measurement_date TEXT NOT NULL,recorded_at TEXT DEFAULT CURRENT_TIMESTAMP,values_json TEXT NOT NULL)")}}
+ override fun onUpgrade(d:SQLiteDatabase,o:Int,n:Int){if(o<2){listOf("measurement_date TEXT","time_of_day TEXT","left_systolic REAL","left_diastolic REAL","right_systolic REAL","right_diastolic REAL").forEach{d.execSQL("ALTER TABLE vitals ADD COLUMN $it")};d.execSQL("UPDATE vitals SET measurement_date=date(recorded_at),time_of_day='unknown' WHERE measurement_date IS NULL")};if(o<3){d.execSQL("CREATE TABLE anthropometry(id INTEGER PRIMARY KEY AUTOINCREMENT,member_id INTEGER NOT NULL,measurement_date TEXT NOT NULL,recorded_at TEXT DEFAULT CURRENT_TIMESTAMP,values_json TEXT NOT NULL)")};if(o<4){d.execSQL("CREATE TABLE reminders(id TEXT PRIMARY KEY,member_id INTEGER,label TEXT NOT NULL,kind TEXT NOT NULL,interval_minutes INTEGER NOT NULL,is_repeating INTEGER NOT NULL,active INTEGER NOT NULL DEFAULT 1,created_at TEXT DEFAULT CURRENT_TIMESTAMP)")}}
  fun addAnthropometry(mid:Long,date:String,json:String){writableDatabase.insert("anthropometry",null,ContentValues().apply{put("member_id",mid);put("measurement_date",date);put("values_json",json)})}
  fun addMember(name:String,dob:String,sex:String,blood:String,height:String){val v=ContentValues().apply{put("name",name);put("dob",dob);put("sex",sex);put("blood",blood);put("height",height.toDoubleOrNull())};writableDatabase.insert("members",null,v)}
  fun addVital(mid:Long,j:JSONObject,notes:String,date:String,period:String){val v=ContentValues().apply{put("member_id",mid);put("measurement_date",date);put("time_of_day",period);put("left_systolic",j.optDouble("left_systolic").takeIf{j.has("left_systolic")});put("left_diastolic",j.optDouble("left_diastolic").takeIf{j.has("left_diastolic")});put("right_systolic",j.optDouble("right_systolic").takeIf{j.has("right_systolic")});put("right_diastolic",j.optDouble("right_diastolic").takeIf{j.has("right_diastolic")});put("pulse",j.optDouble("pulse").takeIf{j.has("pulse")});put("weight",j.optDouble("weight_kg").takeIf{j.has("weight_kg")});put("height",j.optDouble("height_cm").takeIf{j.has("height_cm")});put("spo2",j.optDouble("spo2").takeIf{j.has("spo2")});put("temp",j.optDouble("temp_c").takeIf{j.has("temp_c")});put("notes",notes)};writableDatabase.insert("vitals",null,v)}
@@ -63,7 +68,7 @@ class HealthDb(c:Context):SQLiteOpenHelper(c,"health_monitor.db",null,3){
 }
 
 class MainActivity:ComponentActivity(){
- override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);if(!Python.isStarted())Python.start(AndroidPlatform(this));val db=HealthDb(this);setContent{MaterialTheme(colorScheme=lightColorScheme(primary=Forest,background=Ivory,surface=Cream,onSurface=Ink,secondary=Clay)){HealthApp(db)}}}
+ override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);if(!Python.isStarted())Python.start(AndroidPlatform(this));lifecycleScope.launch { try { val db=withContext(Dispatchers.IO) { val key=LocalKeyVault().getOrCreateDatabasePassphrase(this@MainActivity); EncryptedDatabaseMigration.migrateIfNeeded(this@MainActivity,key); HealthDb(this@MainActivity,key) }; setContent{MaterialTheme(colorScheme=lightColorScheme(primary=Forest,background=Ivory,surface=Cream,onSurface=Ink,secondary=Clay)){LocalAuthGate { HealthApp(db) }}} } catch(e:Exception) { setContent { MaterialTheme { Surface(Modifier.fillMaxSize(),color=Ivory) { Column(Modifier.fillMaxSize().padding(24.dp),verticalArrangement=Arrangement.Center) { Text("Health database could not be safely opened",fontSize=22.sp,color=Ink); Spacer(Modifier.height(12.dp)); Text(e.message ?: "Database migration failed. Your original database has been preserved where possible.",color=Ink); Text("Do not uninstall the app or clear its data.",color=Ink) } } } } } }}
 }
 @Composable private fun HealthApp(db:HealthDb){
  var tab by remember{mutableStateOf("Home")};var refresh by remember{mutableIntStateOf(0)};var dialog by remember{mutableStateOf("")}
@@ -82,7 +87,7 @@ class MainActivity:ComponentActivity(){
    Toast.makeText(context,"PDF exported",Toast.LENGTH_LONG).show()
   }catch(e:Exception){Toast.makeText(context,"PDF export failed: ${e.message}",Toast.LENGTH_LONG).show()}}
  }
- Scaffold(containerColor=Ivory,floatingActionButton={ExtendedFloatingActionButton(onClick={pdfLauncher.launch("Health-Monitor-Report.pdf")},text={Text("Export PDF")},icon={Icon(Icons.Default.PictureAsPdf,null)})},bottomBar={NavigationBar(containerColor=Cream){listOf("Home","People","Vitals","Reports","More").forEach{t->NavigationBarItem(selected=tab==t,onClick={tab=t},icon={Icon(when(t){"Home"->Icons.Default.Home;"People"->Icons.Default.Groups;"Vitals"->Icons.Default.MonitorHeart;"Reports"->Icons.Default.Description;else->Icons.Default.MoreHoriz},null)},label={Text(t)})}}}){p->
+ Scaffold(containerColor=Ivory,floatingActionButton={ExtendedFloatingActionButton(onClick={pdfLauncher.launch("Health-Monitor-Report.pdf")},text={Text("Export PDF")},icon={Icon(Icons.Default.PictureAsPdf,null)})},bottomBar={NavigationBar(containerColor=Cream){listOf("Home","People","Vitals","Reports","Analytics","Reminders","More").forEach{t->NavigationBarItem(selected=tab==t,onClick={tab=t},icon={Icon(when(t){"Home"->Icons.Default.Home;"People"->Icons.Default.Groups;"Vitals"->Icons.Default.MonitorHeart;"Reports"->Icons.Default.Description;"Analytics"->Icons.Default.Analytics;"Reminders"->Icons.Default.Notifications;else->Icons.Default.MoreHoriz},null)},label={Text(t)})}}}){p->
   Column(Modifier.fillMaxSize().padding(p)){
    Row(Modifier.fillMaxWidth().padding(horizontal=20.dp, vertical=14.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text("HEALTH MONITOR",fontSize=11.sp,letterSpacing=2.sp,color=Forest,fontWeight=FontWeight.Bold);Text(tab,fontSize=27.sp,color=Ink,fontWeight=FontWeight.SemiBold)};Surface(color=Forest,shape=RoundedCornerShape(50)){Icon(Icons.Default.Favorite, null,tint=Color.White,modifier=Modifier.padding(11.dp).size(20.dp))}}
    when(tab){
@@ -99,7 +104,8 @@ everyday wellbeing.",fontSize=25.sp,color=Color.White,fontWeight=FontWeight.Semi
     "People"->LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){item{ButtonRow("Add family member"){dialog="person"}};items(members){m->RecordCard(m[1],listOf(m[2],m[3]).filter{it.isNotBlank()}.joinToString(" · ").ifBlank{"Family profile"} )}}
     "Vitals"->LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){item{ButtonRow("Record new vitals"){dialog="vitals"}};items(vitals){r->RecordCard("${r[1]} · ${r[2]}","BP ${r[3]}/${r[4]} · Pulse ${r[5]} · Weight ${r[6]} kg · SpO₂ ${r[7]}%")}}
     "Reports"->LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){item{ButtonRow("Add laboratory report"){dialog="lab"}};items(labs){r->RecordCard("${r[1]} · ${r[2]}",r[3])};item{SectionTitle("MEDICINES")};item{ButtonRow("Add medicine"){dialog="medicine"}};items(meds){r->RecordCard("${r[2]} · ${r[1]}","${r[3]} · Started ${r[4]}")}}
-    else->Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("Settings & privacy",fontSize=23.sp,fontWeight=FontWeight.SemiBold);RecordCard("On-device database","Health records are stored locally in the app database.");RecordCard("Calculation engine","Python 3.11 embedded with Chaquopy.");RecordCard("Clinical note","Reference ranges are informational and do not provide a diagnosis. Follow the reporting laboratory's interval and clinician guidance.")}
+    "Analytics"->AnalyticsDashboard(db,refresh)
+    "Reminders"->ReminderManagementScreen()\n    else->Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("Settings & privacy",fontSize=23.sp,fontWeight=FontWeight.SemiBold);RecordCard("On-device database","Health records are stored locally in the app database.");RecordCard("Calculation engine","Python 3.11 embedded with Chaquopy.");RecordCard("Clinical note","Reference ranges are informational and do not provide a diagnosis. Follow the reporting laboratory's interval and clinician guidance.")}
    }
   }
  }}

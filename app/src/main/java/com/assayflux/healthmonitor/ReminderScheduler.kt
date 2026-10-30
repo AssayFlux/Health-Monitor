@@ -11,6 +11,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.Worker
@@ -47,6 +48,20 @@ object ReminderScheduler {
             .build()
         WorkManager.getInstance(context).enqueueUniqueWork(
             "health-reminder-$id", ExistingWorkPolicy.REPLACE, request
+        )
+    }
+
+    /** Repeating reminders use WorkManager's 15-minute minimum periodic interval. */
+    fun scheduleRecurring(context: Context, id: String, kind: String, interval: Long, unit: TimeUnit) {
+        require(id.matches(Regex("[A-Za-z0-9_-]{1,64}")))
+        require(kind in setOf("medicine", "appointment", "test", "vitals", "follow_up", "general"))
+        val minutes = unit.toMinutes(interval)
+        require(minutes >= 15) { "Repeating reminders must be at least 15 minutes apart." }
+        val input = Data.Builder().putString(INPUT_ID, id).putString(INPUT_KIND, kind).build()
+        val request = PeriodicWorkRequestBuilder<HealthReminderWorker>(interval, unit)
+            .setInputData(input).build()
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            "health-reminder-$id", androidx.work.ExistingPeriodicWorkPolicy.UPDATE, request
         )
     }
 
