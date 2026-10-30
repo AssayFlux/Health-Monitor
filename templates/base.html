@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
 <title>{% block title %}Health Monitor{% endblock %}</title>
-<meta name="theme-color" content="#232a35">
+<meta name="theme-color" content="#34483e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="{{ app_name }}">
@@ -18,6 +18,7 @@
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon.svg') }}">
 {% endif %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='vintage.css') }}">
 {% block head %}{% endblock %}
 </head>
 <body class="app-body">
