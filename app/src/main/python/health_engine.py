@@ -86,3 +86,72 @@ def calculate_vitals_json(values):
 def calculate_labs_json(values, age=None, sex="M"):
     import json
     return json.dumps(calculate_labs(values, age, sex), allow_nan=False)
+
+
+def summarize_results(records):
+    """Backend statistics for a sequence of numeric observations."""
+    values = [_num(r.get("value")) for r in (records or [])]
+    values = [v for v in values if v is not None and math.isfinite(v)]
+    if not values:
+        return {"count": 0, "mean": None, "minimum": None, "maximum": None,
+                "latest": None, "change": None, "trend": "insufficient_data"}
+    mean = sum(values) / len(values)
+    change = values[-1] - values[-2] if len(values) > 1 else None
+    return {"count": len(values), "mean": round(mean, 2),
+            "minimum": min(values), "maximum": max(values),
+            "latest": values[-1], "change": round(change, 2) if change is not None else None,
+            "trend": "increasing" if change is not None and change > 0 else
+                     "decreasing" if change is not None and change < 0 else
+                     "stable" if change == 0 else "insufficient_data"}
+
+def explain_result(status, parameter="", value=None, unit="", low=None, high=None):
+    """Plain-language, non-diagnostic explanation based on supplied interval."""
+    label = (parameter or "This result").strip()
+    shown = f"{value} {unit}".strip() if value is not None else ""
+    interval = ""
+    if low is not None or high is not None:
+        interval = f" The report reference interval is {low if low is not None else '—'} to {high if high is not None else '—'} {unit}."
+    messages = {
+        "normal": "Within the reference interval supplied by the reporting laboratory.",
+        "low": "Below the lower reference limit supplied by the reporting laboratory.",
+        "high": "Above the upper reference limit supplied by the reporting laboratory.",
+        "borderline": "Borderline according to the status selected for this report.",
+        "abnormal": "Flagged as abnormal by the report or reviewer.",
+        "positive": "A positive finding. Its meaning depends on the test and clinical context.",
+        "negative": "A negative finding. This does not always exclude disease.",
+        "reactive": "Reactive screening result. Follow the test's confirmatory pathway.",
+        "non_reactive": "Non-reactive result for this assay.",
+        "detected": "The target was detected by this test.",
+        "not_detected": "The target was not detected in this sample.",
+        "pending": "The result is pending.",
+        "critical": "Marked critical. Follow the laboratory's urgent notification process.",
+        "unclassified": "No reliable classification is available; check the report and reference interval."
+    }
+    key = str(status or "unclassified").lower()
+    return {"title": label, "value": shown, "status": key,
+            "explanation": messages.get(key, messages["unclassified"]) + interval,
+            "disclaimer": "This explanation is educational, not a diagnosis. Interpret with the full report and a qualified clinician."}
+
+def dashboard_statistics(records):
+    """Counts by explicit status; no clinical inference is performed."""
+    counts = {}
+    for record in records or []:
+        status = str(record.get("status") or "unclassified").lower()
+        counts[status] = counts.get(status, 0) + 1
+    total = sum(counts.values())
+    return {"total": total, "by_status": counts,
+            "normal_percent": round(100 * counts.get("normal", 0) / total, 1) if total else 0,
+            "flagged": sum(counts.get(k, 0) for k in
+                           ("low", "high", "abnormal", "positive", "reactive", "detected", "critical"))}
+
+def summarize_results_json(records):
+    import json
+    return json.dumps(summarize_results(records), allow_nan=False)
+
+def explain_result_json(status, parameter="", value=None, unit="", low=None, high=None):
+    import json
+    return json.dumps(explain_result(status, parameter, value, unit, low, high), allow_nan=False)
+
+def dashboard_statistics_json(records):
+    import json
+    return json.dumps(dashboard_statistics(records), allow_nan=False)
