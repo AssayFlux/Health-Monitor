@@ -10,7 +10,8 @@ object EncryptedDatabaseMigration {
     private const val NAME = "health_monitor.db"
     private const val TEMP = "health_monitor.encrypted.tmp"
     private const val BACKUP = "health_monitor.plaintext.migration-backup"
-    private val tables = listOf("members", "vitals", "labs", "medicines", "clinical_tests", "anthropometry")
+    // Keep aligned with every HealthDb table; these counts verify workflow records too.
+    private val tables = listOf("members", "vitals", "labs", "medicines", "clinical_tests", "anthropometry", "appointments", "reminders")
     fun migrateIfNeeded(context: Context, passphrase: ByteArray) {
         System.loadLibrary("sqlcipher")
         val source = context.getDatabasePath(NAME)
