@@ -20,10 +20,10 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 @Composable
-fun ReminderManagementScreen(db: HealthDb, onSaved: () -> Unit) {
+fun ReminderManagementScreen(db: HealthDb, refreshToken: Int, onSaved: () -> Unit) {
     val context = LocalContext.current
-    val medicines = remember { db.medicinesForReminders() }
-    val members = remember { db.members() }
+    val medicines = remember(refreshToken) { db.medicinesForReminders() }
+    val members = remember(refreshToken) { db.members() }
     var selectedMedicine by remember { mutableStateOf(medicines.firstOrNull()?.get(0) ?: "") }
     var selectedAppointmentMember by remember { mutableStateOf(members.firstOrNull()?.get(0) ?: "") }
     var selectedAppointment by remember { mutableStateOf("") }
@@ -38,8 +38,8 @@ fun ReminderManagementScreen(db: HealthDb, onSaved: () -> Unit) {
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         message = if (granted) "Notification permission granted." else "Permission denied. Enable notifications in Android Settings."
     }
-    val appointments = remember { db.appointments() }
-    val savedReminders = remember(message) { db.reminderRows() }
+    val appointments = remember(refreshToken) { db.appointments() }
+    val savedReminders = remember(refreshToken) { db.reminderRows() }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("REMINDER MANAGEMENT", color = Forest, fontSize = 11.sp)
