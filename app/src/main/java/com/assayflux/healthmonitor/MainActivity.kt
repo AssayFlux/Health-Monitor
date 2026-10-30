@@ -8,6 +8,9 @@ import android.os.Bundle
 import android.app.DatePickerDialog
 import java.util.Calendar
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -65,7 +68,21 @@ class MainActivity:ComponentActivity(){
 @Composable private fun HealthApp(db:HealthDb){
  var tab by remember{mutableStateOf("Home")};var refresh by remember{mutableIntStateOf(0)};var dialog by remember{mutableStateOf("")}
  val members=remember(refresh){db.members()};val vitals=remember(refresh){db.vitals()};val labs=remember(refresh){db.labs()};val meds=remember(refresh){db.medicines()}
- Scaffold(containerColor=Ivory,bottomBar={NavigationBar(containerColor=Cream){listOf("Home","People","Vitals","Reports","More").forEach{t->NavigationBarItem(selected=tab==t,onClick={tab=t},icon={Icon(when(t){"Home"->Icons.Default.Home;"People"->Icons.Default.Groups;"Vitals"->Icons.Default.MonitorHeart;"Reports"->Icons.Default.Description;else->Icons.Default.MoreHoriz},null)},label={Text(t)})}}}){p->
+ val context=androidx.compose.ui.platform.LocalContext.current
+ val pdfLauncher=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")){uri->
+  if(uri!=null){try{
+   val sections=listOf(
+    "FAMILY MEMBERS" to db.rows("SELECT name,COALESCE(dob,''),COALESCE(sex,''),COALESCE(blood,'') FROM members ORDER BY name").map{"Name: ${it[0]} · DOB: ${it[1]} · Sex: ${it[2]} · Blood group: ${it[3]}"},
+    "VITALS" to db.rows("SELECT m.name,COALESCE(v.measurement_date,''),COALESCE(v.left_systolic,'')||'/'||COALESCE(v.left_diastolic,''),COALESCE(v.right_systolic,'')||'/'||COALESCE(v.right_diastolic,''),COALESCE(v.pulse,''),COALESCE(v.weight,''),COALESCE(v.spo2,''),COALESCE(v.temp,'') FROM vitals v JOIN members m ON m.id=v.member_id ORDER BY v.id").map{"${it[0]} · ${it[1]} · Left BP ${it[2]} · Right BP ${it[3]} · Pulse ${it[4]} · Weight ${it[5]} kg · SpO₂ ${it[6]}% · Temp ${it[7]} °C"},
+    "LAB REPORTS" to db.rows("SELECT m.name,COALESCE(l.name,'Report'),l.values_json FROM labs l JOIN members m ON m.id=l.member_id ORDER BY l.id").map{"${it[0]} · ${it[1]} · ${it[2]}"},
+    "MEDICINES" to db.rows("SELECT m.name,x.name,COALESCE(x.dose,''),COALESCE(x.start_date,''),COALESCE(x.end_date,'') FROM medicines x JOIN members m ON m.id=x.member_id ORDER BY x.id").map{"${it[0]} · ${it[1]} · ${it[2]} · ${it[3]} to ${it[4]}"},
+    "ANTHROPOMETRY" to db.rows("SELECT m.name,a.measurement_date,a.values_json FROM anthropometry a JOIN members m ON m.id=a.member_id ORDER BY a.id").map{"${it[0]} · ${it[1]} · ${it[2]}"}
+   )
+   NativePdfExport.write(context,uri,"Health Monitor - Family Health Report",sections)
+   Toast.makeText(context,"PDF exported",Toast.LENGTH_LONG).show()
+  }catch(e:Exception){Toast.makeText(context,"PDF export failed: ${e.message}",Toast.LENGTH_LONG).show()}}
+ }
+ Scaffold(containerColor=Ivory,floatingActionButton={ExtendedFloatingActionButton(onClick={pdfLauncher.launch("Health-Monitor-Report.pdf")},text={Text("Export PDF")},icon={Icon(Icons.Default.PictureAsPdf,null)})},bottomBar={NavigationBar(containerColor=Cream){listOf("Home","People","Vitals","Reports","More").forEach{t->NavigationBarItem(selected=tab==t,onClick={tab=t},icon={Icon(when(t){"Home"->Icons.Default.Home;"People"->Icons.Default.Groups;"Vitals"->Icons.Default.MonitorHeart;"Reports"->Icons.Default.Description;else->Icons.Default.MoreHoriz},null)},label={Text(t)})}}}){p->
   Column(Modifier.fillMaxSize().padding(p)){
    Row(Modifier.fillMaxWidth().padding(horizontal=20.dp, vertical=14.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text("HEALTH MONITOR",fontSize=11.sp,letterSpacing=2.sp,color=Forest,fontWeight=FontWeight.Bold);Text(tab,fontSize=27.sp,color=Ink,fontWeight=FontWeight.SemiBold)};Surface(color=Forest,shape=RoundedCornerShape(50)){Icon(Icons.Default.Favorite, null,tint=Color.White,modifier=Modifier.padding(11.dp).size(20.dp))}}
    when(tab){
