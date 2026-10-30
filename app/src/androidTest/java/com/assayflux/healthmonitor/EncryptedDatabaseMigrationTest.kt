@@ -28,7 +28,7 @@ class EncryptedDatabaseMigrationTest {
             legacy.execSQL("CREATE TABLE vitals(id INTEGER PRIMARY KEY,member_id INTEGER)")
             legacy.execSQL("INSERT INTO vitals(id,member_id) VALUES(1,1)")
         }
-        val key = ByteArray(32).also(SecureRandom()::nextBytes)
+        val key = "test-migration-passphrase-32-chars".toByteArray(Charsets.UTF_8)
         EncryptedDatabaseMigration.migrateIfNeeded(isolated, key)
         val plaintextReadable = try {
             FrameworkDb.openDatabase(source.absolutePath, null, FrameworkDb.OPEN_READONLY).use { db ->
