@@ -39,9 +39,9 @@ import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 import org.json.JSONObject
 
-private val Ivory=Color(0xFFF3EFE5); private val Cream=Color(0xFFFAF8F2)
-private val Forest=Color(0xFF34483E); private val Sage=Color(0xFFA9B19F)
-private val Clay=Color(0xFFA16F5D); private val Ink=Color(0xFF302F29)
+val Ivory=Color(0xFFF3EFE5); val Cream=Color(0xFFFAF8F2)
+val Forest=Color(0xFF34483E); val Sage=Color(0xFFA9B19F)
+val Clay=Color(0xFFA16F5D); val Ink=Color(0xFF302F29)
 
 class HealthDb(c:Context, passphrase:ByteArray):SQLiteOpenHelper(c,"health_monitor.db",passphrase,null,5,0,null,null,false){
  override fun onCreate(d:SQLiteDatabase){
