@@ -157,7 +157,7 @@ private fun ScientificLineChart(title:String, unit:String, points:List<TrendPoin
                     Text(points.last().label, color=Ink.copy(alpha=.55f), fontSize=9.sp)
                 }
                 val mean=values.average()
-                val sd=if(values.size>1) kotlin.math.sqrt(values.sumOf { (it-mean)*(it-mean).toDouble() }/(values.size-1)).toFloat() else 0f
+                val sd=if(values.size>1) kotlin.math.sqrt(values.sumOf { (it-mean).toDouble()*(it-mean).toDouble() }/(values.size-1)).toFloat() else 0f
                 Text("Mean ${"%.1f".format(java.util.Locale.US,mean)} · SD ${"%.1f".format(java.util.Locale.US,sd)} · Range ${"%.1f".format(java.util.Locale.US,low)}–${"%.1f".format(java.util.Locale.US,high)}", color=Ink.copy(alpha=.75f), fontSize=11.sp)
             }
         }
