@@ -111,7 +111,20 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
    Column(Modifier.padding(10.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
     Text("SEND MEMBER DATA",color=Forest)
     Box{OutlinedButton(onClick={menu=true},modifier=Modifier.fillMaxWidth()){Text(members.firstOrNull{it[0]==selected}?.get(1)?:"Choose member")}
-     DropdownMenu(expanded=menu,onDismissRequest={menu=false}){members.forEach{m->DropdownMenuItem(text={Text(m[1])},onClick={selected=m[0];menu=false)}}}
+     DropdownMenu(
+      expanded = menu,
+      onDismissRequest = { menu = false }
+     ) {
+      members.forEach { memberRow ->
+       DropdownMenuItem(
+        text = { Text(memberRow[1]) },
+        onClick = {
+         selected = memberRow[0]
+         menu = false
+        }
+       )
+      }
+     }
     }
     Button(enabled=selected.isNotBlank()&&!busy,onClick={
      busy=true;status="Sending over local Wi-Fi…"
