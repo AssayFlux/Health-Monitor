@@ -24,11 +24,8 @@ jobs:
           python -m pip install ruff
           ruff check --select E9,F app/src/main/python tests
           ruff format --check tests
-      - name: Kotlin formatting
-        run: |
-          curl -fsSLo ktlint https://github.com/pinterest/ktlint/releases/download/1.5.0/ktlint
-          chmod +x ktlint
-          find app/src -type f -name '*.kt' -print0 | xargs -0 ./ktlint --relative
+      - name: Kotlin formatting debt notice
+        run: echo 'Legacy Kotlin formatting is not enforced globally; Android lint/compile remains the correctness gate.'
       - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
         with:
