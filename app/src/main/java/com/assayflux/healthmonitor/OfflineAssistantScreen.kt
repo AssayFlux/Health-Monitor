@@ -289,10 +289,11 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
             status = "Offline speech recognition is unavailable on this device. Install an on-device speech pack or type your message."
             return
         }
-        val recognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
-        speechRecognizer?.destroy()
-        speechRecognizer = recognizer
-        recognizer.setRecognitionListener(object : RecognitionListener {
+        try {
+            val recognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+            speechRecognizer?.destroy()
+            speechRecognizer = recognizer
+            recognizer.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: android.os.Bundle?) { status = "Listening… speak now." }
             override fun onBeginningOfSpeech() { status = "Listening…" }
             override fun onRmsChanged(rmsdB: Float) = Unit
@@ -313,19 +314,24 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
             override fun onPartialResults(partialResults: android.os.Bundle?) = Unit
             override fun onEvent(eventType: Int, params: android.os.Bundle?) = Unit
         })
-        recognizer.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, java.util.Locale.getDefault().toLanguageTag())
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
-        })
+            recognizer.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, java.util.Locale.getDefault().toLanguageTag())
+                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+            })
+        } catch (failure: Exception) {
+            speechRecognizer?.destroy()
+            speechRecognizer = null
+            status = "Offline speech recognition could not start: ${failure.message ?: "service unavailable"}"
+        }
     }
 
     val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) startListening() else status = "Microphone permission was denied."
     }
 
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp).imePadding(), verticalArrangement = Arrangement.spacedBy(9.dp)) {
         Card(colors = CardDefaults.cardColors(containerColor = Forest)) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("PRIVATE · ON-DEVICE AI", color = Sage, fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -396,10 +402,19 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
         OutlinedTextField(value = input, onValueChange = { input = it }, modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("Ask your health assistant…") }, maxLines = 3, enabled = !generating)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            OutlinedButton(onClick = {
-                if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) startListening()
-                else micPermission.launch(Manifest.permission.RECORD_AUDIO)
-            }, enabled = !generating) { Icon(Icons.Default.Mic, null); Text("Talk") }
+            if (speechRecognizer == null) {
+                OutlinedButton(onClick = {
+                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) startListening()
+                    else micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                }, enabled = !generating && !loadingModel) { Icon(Icons.Default.Mic, null); Text("Talk") }
+            } else {
+                OutlinedButton(onClick = {
+                    speechRecognizer?.cancel()
+                    speechRecognizer?.destroy()
+                    speechRecognizer = null
+                    status = "Voice input cancelled."
+                }) { Icon(Icons.Default.Stop, null); Text("Stop") }
+            }
             Button(onClick = { sendMessage(input) }, enabled = input.isNotBlank() && !generating && loadedModel?.isLoaded == true,
                 modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Forest)) {
                 Icon(Icons.Default.Send, null); Spacer(Modifier.width(6.dp)); Text("Send")
