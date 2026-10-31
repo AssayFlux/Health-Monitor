@@ -87,7 +87,7 @@ jobs:
                   name for name in archive.namelist()
                   if name.startswith("lib/") and name.endswith(".so")
               )
-              print("\\n".join(native_entries))
+              print("\n".join(native_entries))
               if required not in native_entries:
                   raise SystemExit(f"APK is missing required native library: {required}")
           print("ARM64 SQLCipher native library is present in the APK.")
