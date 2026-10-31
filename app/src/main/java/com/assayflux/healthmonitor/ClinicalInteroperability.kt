@@ -194,8 +194,11 @@ object ClinicalInteroperability {
     fun stageFhirBundle(db: HealthDb, json: String): List<ImportCandidate> {
         val root=JSONObject(json)
         require(root.optString("resourceType")=="Bundle") { "Expected a FHIR R4 Bundle" }
+        val bundleType = root.optString("type")
+        require(bundleType in setOf("collection", "document", "message", "transaction", "batch", "history", "searchset")) { "FHIR Bundle.type is missing or invalid" }
         val entries=root.optJSONArray("entry") ?: JSONArray()
         require(entries.length() in 1..5000) { "Bundle must contain between 1 and 5000 entries" }
+        validateBundleEntries(entries)
         val out=mutableListOf<ImportCandidate>()
         for(i in 0 until entries.length()) {
             val resource=entries.optJSONObject(i)?.optJSONObject("resource") ?: continue
@@ -224,6 +227,36 @@ object ClinicalInteroperability {
             out.add(item)
         }
         return out
+    }
+
+
+    /** Base R4 mandatory-element checks; a jurisdiction-specific implementation guide is a separate profile layer. */
+    private fun validateBundleEntries(entries: JSONArray) {
+        val required = mapOf(
+            "Observation" to listOf("status", "code", "subject"),
+            "DiagnosticReport" to listOf("status", "code", "subject"),
+            "MedicationStatement" to listOf("status", "subject"),
+            "MedicationRequest" to listOf("status", "intent", "subject"),
+            "Condition" to listOf("subject", "code"),
+            "AllergyIntolerance" to listOf("patient"),
+            "Procedure" to listOf("status", "subject", "code"),
+            "Immunization" to listOf("status", "patient", "vaccineCode"),
+            "Encounter" to listOf("status", "class", "subject")
+        )
+        for (i in 0 until entries.length()) {
+            val resource = entries.optJSONObject(i)?.optJSONObject("resource") ?: continue
+            val type = resource.optString("resourceType")
+            val fields = required[type] ?: continue
+            fields.forEach { field ->
+                require(resource.has(field) && !resource.isNull(field)) {
+                    "FHIR R4 $type resource at entry $i is missing required element '$field'"
+                }
+            }
+            if (type == "Observation") require(resource.optString("status") in
+                setOf("registered", "preliminary", "final", "amended", "corrected", "cancelled", "entered-in-error", "unknown")) {
+                "FHIR R4 Observation.status is invalid at entry $i"
+            }
+        }
     }
 
     private fun extractDisplay(r: JSONObject,type:String):String {
