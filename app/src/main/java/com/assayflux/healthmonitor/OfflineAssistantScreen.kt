@@ -68,7 +68,9 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
         val engine = TextToSpeech(context) { result ->
             if (result == TextToSpeech.SUCCESS) {
                 val available = tts?.voices.orEmpty()
-                val voice = available.firstOrNull { !it.isNetworkConnectionRequired }
+                val preferredLanguage = java.util.Locale.getDefault().language
+                val voice = available.firstOrNull { !it.isNetworkConnectionRequired && it.locale.language == preferredLanguage }
+                    ?: available.firstOrNull { !it.isNetworkConnectionRequired }
                 if (voice != null) {
                     tts?.voice = voice
                     offlineVoiceReady = true
@@ -159,6 +161,13 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
     fun loadModel() {
         val file = modelFile ?: run { status = "Import a GGUF model first."; return }
         if (!Build.SUPPORTED_ABIS.contains("arm64-v8a")) { status = "The current embedded llama.cpp package supports ARM64 phones only."; return }
+        val memory = android.app.ActivityManager.MemoryInfo()
+        (context.getSystemService(android.content.Context.ACTIVITY_SERVICE) as android.app.ActivityManager).getMemoryInfo(memory)
+        val estimatedNeed = (file.length() * 1.35).toLong()
+        if (file.length() > 2_500_000_000L && memory.availMem < estimatedNeed) {
+            status = "Not enough free RAM for this model right now. Close other apps or import a smaller 0.8B–2B model."
+            return
+        }
         scope.launch {
             loadingModel = true
             status = "Loading model into memory. This may take a while…"
