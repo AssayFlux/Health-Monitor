@@ -237,6 +237,7 @@ private fun NavigationHubScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
+            Text(title, color = Ink, fontSize = 21.sp, fontWeight = FontWeight.SemiBold)
             Text(description, color = Ink.copy(alpha = .68f), fontSize = 13.sp,
                 modifier = Modifier.padding(bottom = 4.dp))
         }
