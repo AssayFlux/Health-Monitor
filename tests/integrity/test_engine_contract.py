@@ -45,9 +45,7 @@ class EngineContractTests(unittest.TestCase):
         self.assertTrue(math.isfinite(decoded["bmi"]["value"]))
 
     def test_json_boundary_accepts_serialized_kotlin_payload(self):
-        payload = json.dumps(
-            {"weight_kg": 70, "height_cm": 175, "age": 30, "sex": "M"}
-        )
+        payload = json.dumps({"weight_kg": 70, "height_cm": 175, "age": 30, "sex": "M"})
         decoded = json.loads(health_engine.calculate_vitals_json(payload))
         self.assertEqual(decoded["bmi"]["value"], 22.9)
 
