@@ -24,7 +24,7 @@
   android:allowBackup="false"
   android:fullBackupContent="false"
   android:dataExtractionRules="@xml/data_extraction_rules"
-  android:usesCleartextTraffic="false"
+  android:usesCleartextTraffic="true"
   android:supportsRtl="true">
   <activity android:name=".MainActivity" android:exported="true">
    <intent-filter>
