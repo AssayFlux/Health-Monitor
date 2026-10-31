@@ -151,7 +151,7 @@ object ClinicalInteroperability {
         return JSONObject().put("resourceType", "Bundle").put("id", UUID.randomUUID().toString())
             .put("meta", JSONObject().put("profile", JSONArray().put("http://hl7.org/fhir/StructureDefinition/Bundle")))
             .put("type", "collection").put("timestamp", java.time.Instant.now().toString())
-            .put("entry", entries).put("fhirVersion", FHIR_VERSION).toString(2)
+            .put("entry", entries).toString(2)
     }
 
     private fun fhirGender(value: String): String = when(value.lowercase()) {
@@ -166,20 +166,19 @@ object ClinicalInteroperability {
         val unit=c.getString(10); val unitSystem=c.getString(11)
         val verification=c.getString(12)
         val r=JSONObject().put("resourceType",type).put("id",id)
-        r.put("subject",JSONObject().put("reference","Patient/$patientId"))
         val coding=JSONArray()
         if (!system.isNullOrBlank() && !code.isNullOrBlank()) coding.put(JSONObject().put("system",system).put("code",code).put("display",display))
         val concept=JSONObject().put("text",display ?: "")
         if(coding.length()>0) concept.put("coding",coding)
         when(type) {
-            "Condition" -> { r.put("clinicalStatus",codeable("http://terminology.hl7.org/CodeSystem/condition-clinical",status ?: "unknown")); r.put("code",concept); if(!start.isNullOrBlank())r.put("onsetDateTime",start);if(!end.isNullOrBlank())r.put("abatementDateTime",end) }
-            "AllergyIntolerance" -> { r.put("clinicalStatus",codeable("http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",status ?: "active"));r.put("code",concept);r.put("patient",JSONObject().put("reference","Patient/$patientId")) }
-            "Procedure" -> { r.put("status",status ?: "unknown");r.put("code",concept);if(!start.isNullOrBlank())r.put("performedDateTime",start) }
+            "Condition" -> { r.put("subject",JSONObject().put("reference","Patient/$patientId")); r.put("clinicalStatus",codeable("http://terminology.hl7.org/CodeSystem/condition-clinical",status ?: "unknown")); r.put("code",concept); if(!start.isNullOrBlank())r.put("onsetDateTime",start);if(!end.isNullOrBlank())r.put("abatementDateTime",end) }
+            "AllergyIntolerance" -> { r.put("patient",JSONObject().put("reference","Patient/$patientId")); r.put("clinicalStatus",codeable("http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",status ?: "active"));r.put("code",concept) }
+            "Procedure" -> { r.put("subject",JSONObject().put("reference","Patient/$patientId")); r.put("status",status ?: "unknown");r.put("code",concept);if(!start.isNullOrBlank())r.put("performedDateTime",start) }
             "Immunization" -> { r.put("status",status ?: "completed");r.put("vaccineCode",concept);r.put("patient",JSONObject().put("reference","Patient/$patientId"));if(!start.isNullOrBlank())r.put("occurrenceDateTime",start) }
-            "Encounter" -> { r.put("status",status ?: "finished");r.put("class",JSONObject().put("system","http://terminology.hl7.org/CodeSystem/v3-ActCode").put("code","AMB"));r.put("type",JSONArray().put(concept));if(!start.isNullOrBlank())r.put("period",JSONObject().put("start",start).put("end",end)) }
-            "MedicationStatement", "MedicationRequest" -> { r.put("status",status ?: "unknown");r.put("medicationCodeableConcept",concept);r.put("subject",JSONObject().put("reference","Patient/$patientId")) }
-            "DiagnosticReport" -> { r.put("status",status ?: "unknown");r.put("code",concept);r.put("subject",JSONObject().put("reference","Patient/$patientId"));if(!start.isNullOrBlank())r.put("effectiveDateTime",start) }
-            "Observation" -> { r.put("status",status ?: "final");r.put("code",concept);r.put("effectiveDateTime",start ?: "");if(num!=null)r.put("valueQuantity",JSONObject().put("value",num).put("unit",unit ?: "").put("system",unitSystem ?: Terminology.UCUM).put("code",unit ?: "")) else if(text!=null)r.put("valueString",text) }
+            "Encounter" -> { r.put("subject",JSONObject().put("reference","Patient/$patientId")); r.put("status",status ?: "finished");r.put("class",JSONObject().put("system","http://terminology.hl7.org/CodeSystem/v3-ActCode").put("code","AMB"));r.put("type",JSONArray().put(concept));if(!start.isNullOrBlank())r.put("period",JSONObject().put("start",start).put("end",end)) }
+            "MedicationStatement", "MedicationRequest" -> { r.put("subject",JSONObject().put("reference","Patient/$patientId")); r.put("status",status ?: "unknown"); if(type=="MedicationRequest") r.put("intent","order");r.put("medicationCodeableConcept",concept);r.put("subject",JSONObject().put("reference","Patient/$patientId")) }
+            "DiagnosticReport" -> { r.put("subject",JSONObject().put("reference","Patient/$patientId")); r.put("status",status ?: "unknown");r.put("code",concept);r.put("subject",JSONObject().put("reference","Patient/$patientId"));if(!start.isNullOrBlank())r.put("effectiveDateTime",start) }
+            "Observation" -> { r.put("subject",JSONObject().put("reference","Patient/$patientId")); r.put("status",status ?: "final");r.put("code",concept);if(!start.isNullOrBlank())r.put("effectiveDateTime",start);if(num!=null)r.put("valueQuantity",JSONObject().put("value",num).put("unit",unit ?: "").put("system",unitSystem ?: Terminology.UCUM).put("code",unit ?: "")) else if(text!=null)r.put("valueString",text) }
             else -> return null
         }
         if(verification=="legacy_unreviewed") r.put("extension",JSONArray().put(JSONObject()
