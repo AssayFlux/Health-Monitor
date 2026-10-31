@@ -45,13 +45,13 @@ Health Monitor brings family profiles, medical history, vital signs, laboratory 
 
 ## Offline AI assistant and voice
 
-The Android app includes an optional on-device assistant powered by a GGUF model through a llama.cpp Android runtime. Model weights are **not bundled**; users import a compatible GGUF file into app-private storage. The recommended starting model is Qwen 3.5 4B Q4_K_M for devices with sufficient memory (8 GB RAM or more). Use a smaller 0.8B–2B quantized model on lower-memory devices. The current packaged runtime is CPU/ARM64; x86_64 emulators can build the app but cannot run this inference backend.
+The Android app includes an optional on-device assistant powered by a GGUF model through a llama.cpp Android runtime. Model weights are **not bundled**; users import a compatible GGUF file into app-private storage. The recommended starting model is the plain `Qwen3.5-4B-Q4_K_M.gguf` (about 2.78 GB) for devices with sufficient memory (8 GB RAM or more). Use a smaller 0.8B–2B quantized model on lower-memory devices. The current packaged runtime is CPU/ARM64; x86_64 emulators can build the app but cannot run this inference backend.
 
 - Text inference runs locally; the app does not send prompts or health records to an AI API.
-- Health-record context is **off by default**. The user must explicitly enable read-only context and select one family member. Only that member's available vitals, clinical tests, lab reports, medicines, history and appointments are included.
+- Health-record context is **off by default**. The user must explicitly enable read-only context and select one family member. Only that member's available vitals, clinical tests, lab reports, medicines, history, appointments, confirmed interoperable records and OCR text marked for review are included. The context is bounded to recent records and is not a complete chart export.
 - Conversations are kept in memory for the current screen session and are not saved to the health database.
 - Voice input uses Android's on-device speech recognizer (Android 12 / API 31 or later, with an offline recognition service/model installed). The app does not fall back to cloud speech recognition.
-- Spoken replies use an installed TTS voice only when Android reports that voice does not require a network connection. If no offline voice is installed, text chat remains available.
+- Spoken replies use an installed TTS voice only when Android reports that voice does not require a network connection. If no offline voice is installed, text chat remains available. Replies are generated as complete responses before speech; live token streaming is not included in the free runtime.
 - Model import is a one-time local file copy. The model is stored under app-specific external storage and can be removed by uninstalling the app or clearing app data.
 
 The assistant is informational, not diagnostic. It cannot write health records, prescribe treatment or change medicine doses. AI-generated explanations must be checked against original reports and qualified clinical advice. Model quality and clinical safety are not established by the presence of the feature.
