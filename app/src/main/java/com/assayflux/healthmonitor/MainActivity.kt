@@ -91,7 +91,8 @@ class HealthDb(c:Context, passphrase:ByteArray):SQLiteOpenHelper(c,"health_monit
 class MainActivity:FragmentActivity(){
  override fun onCreate(savedInstanceState:Bundle?){
   super.onCreate(savedInstanceState)
-  activeVintagePalette = vintagePalettes.firstOrNull { it.id == getSharedPreferences("appearance_v1", MODE_PRIVATE).getString("palette", "botanical") } ?: vintagePalettes.first()\n  if(!Python.isStarted()) Python.start(AndroidPlatform(this))
+  activeVintagePalette = vintagePalettes.firstOrNull { it.id == getSharedPreferences("appearance_v1", MODE_PRIVATE).getString("palette", "botanical") } ?: vintagePalettes.first()
+  if(!Python.isStarted()) Python.start(AndroidPlatform(this))
   setContent {
    MaterialTheme(colorScheme=lightColorScheme(primary=Forest,background=Ivory,surface=Cream,onSurface=Ink,secondary=Clay)) {
     LocalAuthGate { passphrase -> AuthenticatedDatabaseHost(passphrase) }
