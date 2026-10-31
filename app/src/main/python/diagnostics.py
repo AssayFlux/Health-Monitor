@@ -124,7 +124,7 @@ def classify_test(key, value_numeric=None, value_text=None):
     if not hit:
         return "unknown"
     row = hit[1]
-    low, high, normal_text = row[4], row[5], row[6]
+    low, high, _normal_text = row[4], row[5], row[6]
     if value_numeric is not None and (low is not None or high is not None):
         if low is not None and value_numeric < low:
             return "low"
