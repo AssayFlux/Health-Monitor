@@ -63,6 +63,7 @@ fun PrivacyControlsScreen(db: HealthDb, refreshToken: Int, onChanged: () -> Unit
                     Text("SQLCipher encrypted local database · Android Keystore key wrapping · password authentication before database open", color = Ink, fontSize = 12.sp)
                     Text(if (biometric.isEnrolled()) "Strong biometric key is enrolled; password remains the recovery path." else "Biometric unlock is not enrolled. Enable it from the next unlock flow after password authentication.", color = Ink.copy(alpha = .7f), fontSize = 11.sp)
                     if (biometric.isEnrolled()) TextButton(onClick = { showDisable = true }) { Text("Disable biometric unlock") }
+                    if (!biometric.isEnrolled()) BiometricEnrollmentButton(db, onChanged)
                 }
             }
         }
