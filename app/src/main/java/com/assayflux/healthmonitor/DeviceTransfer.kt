@@ -141,7 +141,6 @@ object DeviceTransfer {
                 v.put("id",UUID.randomUUID().toString()); v.put("member_id",mid)
                 sql.insertOrThrow("reminders",null,v)
             }
-            db.recordTransfer("Received",p.senderId,p.senderName,"Integrated",p.count,"Imported as a separate member profile")
             sql.setTransactionSuccessful()
             return mid
         } finally { sql.endTransaction() }
