@@ -139,7 +139,7 @@ fun InteroperabilityScreen(db: HealthDb, refreshToken: Int, onChanged: () -> Uni
                             ocrText = ""; ocrUri = null; onChanged()
                         } catch (e: Exception) { message = "Could not save document metadata: ${e.message}" }
                     }
-                }, enabled = selectedMember.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
+                }, enabled = selectedMember.isNotBlank() && allowOcr, modifier = Modifier.fillMaxWidth()) {
                     Text("Save document for manual review")
                 }
             }
