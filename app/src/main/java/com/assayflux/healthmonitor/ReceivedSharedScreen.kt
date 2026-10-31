@@ -86,8 +86,8 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
    Button(onClick={
     if(pending!=null){status="Integrate or discard the current received transfer before receiving another."}
     else try{
-     server?.stop();val key=DeviceTransfer.token()
-     val s=DeviceTransfer.Server(key){item->
+     server?.stop();val key=DeviceTransfer.token();val secret=DeviceTransfer.encryptionSecret()
+     val s=DeviceTransfer.Server(key,secret){item->
       val historyId=db.recordTransfer("Received",item.senderId,item.senderName,"Awaiting review",item.count,"Received; awaiting your confirmation")
       db.savePendingTransfer(historyId,item.json.toString())
       scope.launch(Dispatchers.Main){pending=item;pendingHistoryId=historyId;onChanged();status="Transfer received. Review it below."}
