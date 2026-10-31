@@ -25,8 +25,9 @@ fun BiometricEnrollmentButton(db: HealthDb, onChanged: () -> Unit) {
                         var passphrase: ByteArray? = null
                         try {
                             val authenticated = result.cryptoObject?.cipher ?: error("Authenticated cipher missing")
-                            passphrase = LocalKeyVault().getOrCreateDatabasePassphrase(context)
-                            biometric.persistEnrollment(authenticated, passphrase)
+                            val keyMaterial = LocalKeyVault().getOrCreateDatabasePassphrase(context)
+                            passphrase = keyMaterial
+                            biometric.persistEnrollment(authenticated, keyMaterial)
                             PrivacyAudit.record(db, "biometric_enrollment_enabled")
                             onChanged()
                         } catch (e: Exception) {
