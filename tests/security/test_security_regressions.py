@@ -7,7 +7,13 @@ import observation_engine
 
 class SecurityRegressionTests(unittest.TestCase):
     def test_non_finite_measurements_are_not_serialized(self):
-        result = health_engine.summarize_results([{"value": float("nan")}, {"value": float("inf")}, {"value": 4}])
+        result = health_engine.summarize_results(
+            [
+                {"value": float("nan")},
+                {"value": float("inf")},
+                {"value": 4},
+            ]
+        )
         self.assertEqual(result["count"], 1)
         self.assertEqual(result["latest"], 4)
 
@@ -16,25 +22,35 @@ class SecurityRegressionTests(unittest.TestCase):
         self.assertIsNone(health_engine.bmi(70, "bad-height"))
 
     def test_invalid_observation_values_become_absent_with_reason(self):
-        result = observation_engine.normalize_observation({
-            "parameter": "Glucose", "result_kind": "quantitative",
-            "value_numeric": "not numeric", "absent_reason": "not_recorded"
-        })
+        result = observation_engine.normalize_observation(
+            {
+                "parameter": "Glucose",
+                "result_kind": "quantitative",
+                "value_numeric": "not numeric",
+                "absent_reason": "not_recorded",
+            }
+        )
         self.assertIsNone(result["value_numeric"])
         self.assertEqual(result["absent_reason"], "not_recorded")
 
     def test_invalid_absent_reason_is_rejected(self):
         with self.assertRaises(ValueError):
-            observation_engine.normalize_observation({
-                "result_kind": "quantitative", "value_numeric": None,
-                "absent_reason": "execute-code"
-            })
+            observation_engine.normalize_observation(
+                {
+                    "result_kind": "quantitative",
+                    "value_numeric": None,
+                    "absent_reason": "execute-code",
+                }
+            )
 
     def test_non_finite_numeric_is_not_accepted_as_measurement(self):
-        result = observation_engine.normalize_observation({
-            "result_kind": "quantitative", "value_numeric": math.inf,
-            "absent_reason": "not_recorded"
-        })
+        result = observation_engine.normalize_observation(
+            {
+                "result_kind": "quantitative",
+                "value_numeric": math.inf,
+                "absent_reason": "not_recorded",
+            }
+        )
         self.assertIsNone(result["value_numeric"])
 
 
