@@ -56,7 +56,7 @@ val Sage get()=activeVintagePalette.sage
 val Clay get()=activeVintagePalette.clay
 val Ink get()=activeVintagePalette.ink
 
-class HealthDb(c:Context, passphrase:ByteArray):SQLiteOpenHelper(c,"health_monitor.db",passphrase,null,7,0,null,null,false){
+class HealthDb(c:Context, passphrase:ByteArray, databaseName:String="health_monitor.db"):SQLiteOpenHelper(c,databaseName,passphrase,null,7,0,null,null,false){
  override fun onCreate(d:SQLiteDatabase){
   d.execSQL("CREATE TABLE members(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,dob TEXT,sex TEXT,blood TEXT,height REAL,notes TEXT)")
   d.execSQL("CREATE TABLE vitals(id INTEGER PRIMARY KEY AUTOINCREMENT,member_id INTEGER NOT NULL,recorded_at TEXT DEFAULT CURRENT_TIMESTAMP,measurement_date TEXT,time_of_day TEXT,systolic REAL,diastolic REAL,left_systolic REAL,left_diastolic REAL,right_systolic REAL,right_diastolic REAL,pulse REAL,weight REAL,height REAL,spo2 REAL,temp REAL,notes TEXT)")
@@ -132,10 +132,16 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
   try {
    val opened=withContext(Dispatchers.IO) {
     try {
+     val app = context.applicationContext as? HealthMonitorApplication
+     check(app?.sqlCipherInitializationError == null) {
+      "Encrypted database support could not be initialized. Install a correctly packaged app update; your local data has not been deleted."
+     }
      HealthDb(context,passphrase).also { ClinicalInteroperability.ensureSchema(it); PrivacyAudit.record(it, "database_unlocked", outcome = "authenticated") }
     } finally { passphrase.fill(0) }
    }
    db=opened
+  } catch(e:LinkageError) {
+   error="Encrypted database support could not be loaded. Install a correctly packaged app update; your local data has not been deleted."
   } catch(e:Exception) { error=e.message ?: "Database unlock failed." }
  }
  if(db!=null) {
