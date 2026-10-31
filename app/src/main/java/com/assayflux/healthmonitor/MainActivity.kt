@@ -78,7 +78,8 @@ class HealthDb(c:Context, passphrase:ByteArray):SQLiteOpenHelper(c,"health_monit
  fun recordTransfer(direction:String,deviceId:String,deviceName:String,status:String,count:Int,details:String){writableDatabase.insert("transfer_history",null,ContentValues().apply{put("id",java.util.UUID.randomUUID().toString());put("direction",direction);put("device_id",deviceId);put("device_name",deviceName);put("status",status);put("record_count",count);put("details",details)})}
  fun transferHistory()=rows("SELECT id,direction,device_id,COALESCE(device_name,''),occurred_at,status,record_count,COALESCE(details,'') FROM transfer_history ORDER BY occurred_at DESC")
  fun deleteTransfer(id:String){writableDatabase.delete("transfer_history","id=?",arrayOf(id))}
-\n fun addAnthropometry(mid:Long,date:String,json:String){writableDatabase.insert("anthropometry",null,ContentValues().apply{put("member_id",mid);put("measurement_date",date);put("values_json",json)})}
+
+ fun addAnthropometry(mid:Long,date:String,json:String){writableDatabase.insert("anthropometry",null,ContentValues().apply{put("member_id",mid);put("measurement_date",date);put("values_json",json)})}
  fun addMember(name:String,dob:String,sex:String,blood:String,height:String){val v=ContentValues().apply{put("name",name);put("dob",dob);put("sex",sex);put("blood",blood);put("height",height.toDoubleOrNull())};writableDatabase.insert("members",null,v)}
  fun addVital(mid:Long,j:JSONObject,notes:String,date:String,period:String){val v=ContentValues().apply{put("member_id",mid);put("measurement_date",date);put("time_of_day",period);put("left_systolic",j.optDouble("left_systolic").takeIf{j.has("left_systolic")});put("left_diastolic",j.optDouble("left_diastolic").takeIf{j.has("left_diastolic")});put("right_systolic",j.optDouble("right_systolic").takeIf{j.has("right_systolic")});put("right_diastolic",j.optDouble("right_diastolic").takeIf{j.has("right_diastolic")});put("pulse",j.optDouble("pulse").takeIf{j.has("pulse")});put("weight",j.optDouble("weight_kg").takeIf{j.has("weight_kg")});put("height",j.optDouble("height_cm").takeIf{j.has("height_cm")});put("spo2",j.optDouble("spo2").takeIf{j.has("spo2")});put("temp",j.optDouble("temp_c").takeIf{j.has("temp_c")});put("notes",notes)};writableDatabase.insert("vitals",null,v)}
  fun addLab(mid:Long,name:String,data:String){writableDatabase.insert("labs",null,ContentValues().apply{put("member_id",mid);put("name",name);put("values_json",data)})}
@@ -91,10 +92,10 @@ class HealthDb(c:Context, passphrase:ByteArray):SQLiteOpenHelper(c,"health_monit
  fun addHealthHistory(mid:Long,category:String,display:String,status:String,onset:String,resolved:String,severity:String,reaction:String,code:String,notes:String){require(display.isNotBlank());writableDatabase.insert("clinical_history",null,ContentValues().apply{put("member_id",mid);put("category",category);put("display",display.trim());put("status",status);put("onset_date",onset);put("resolved_date",resolved);put("severity",severity);put("reaction",reaction);put("clinical_code",code);put("notes",notes)})}
  fun healthHistory()=rows("SELECT h.id,m.name,h.category,h.display,COALESCE(h.status,'active'),COALESCE(h.onset_date,''),COALESCE(h.severity,''),COALESCE(h.reaction,''),COALESCE(h.notes,'') FROM clinical_history h JOIN members m ON m.id=h.member_id ORDER BY h.id DESC")
  fun rows(sql:String):List<List<String>>{val out=mutableListOf<List<String>>();readableDatabase.rawQuery(sql,null).use{c->while(c.moveToNext())out.add((0 until c.columnCount).map{if(c.isNull(it))"" else c.getString(it)})};return out}
- fun members()=rows("SELECT id,name,COALESCE(sex,''),COALESCE(blood,''),COALESCE(dob,'') FROM members ORDER BY name")
+ fun members()=rows("SELECT id,name,COALESCE(sex,''),COALESCE(blood,''),COALESCE(dob,''),COALESCE(height,'') FROM members ORDER BY name")
  fun vitals()=rows("SELECT v.id,m.name,COALESCE(v.measurement_date,date(v.recorded_at)),COALESCE(v.left_systolic,'')||'/'||COALESCE(v.left_diastolic,''),COALESCE(v.right_systolic,'')||'/'||COALESCE(v.right_diastolic,''),COALESCE(v.pulse,''),COALESCE(v.weight,''),COALESCE(v.spo2,''),COALESCE(v.time_of_day,'') FROM vitals v JOIN members m ON m.id=v.member_id ORDER BY v.id DESC LIMIT 30")
  fun labs()=rows("SELECT l.id,m.name,datetime(l.recorded_at,'localtime'),COALESCE(l.name,'Lab report') FROM labs l JOIN members m ON m.id=l.member_id ORDER BY l.id DESC LIMIT 30")
- fun medicines()=rows("SELECT x.id,m.name,x.name,COALESCE(x.dose,''),COALESCE(x.start_date,'') FROM medicines x JOIN members m ON m.id=x.member_id ORDER BY x.id DESC")
+ fun medicines()=rows("SELECT x.id,m.name,x.name,COALESCE(x.dose,''),COALESCE(x.start_date,''),COALESCE(x.end_date,''),COALESCE(x.notes,'') FROM medicines x JOIN members m ON m.id=x.member_id ORDER BY x.id DESC")
  fun count(table:String)=rows("SELECT COUNT(*) FROM $table").firstOrNull()?.firstOrNull()?.toIntOrNull()?:0
 }
 
@@ -171,13 +172,15 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
      item{Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){MetricCard("People",members.size.toString(),Modifier.weight(1f));MetricCard("Vitals",db.count("vitals").toString(),Modifier.weight(1f));MetricCard("Reports",db.count("labs").toString(),Modifier.weight(1f))}}
      item{Text("QUICK ACTIONS",color=Forest,fontWeight=FontWeight.Bold,fontSize=12.sp,letterSpacing=1.3.sp)}
      item{Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){ActionTile("Add person",Icons.Default.PersonAdd,Modifier.weight(1f)){dialog="person"};ActionTile("Record vitals",Icons.Default.MonitorHeart,Modifier.weight(1f)){dialog="vitals"}}}
-     item{Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){ActionTile("Lab report",Icons.Default.Science,Modifier.weight(1f)){dialog="lab"};ActionTile("Medicine",Icons.Default.Medication,Modifier.weight(1f)){dialog="medicine"}}}\n     item{Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){ActionTile("Anthropometry",Icons.Default.Accessibility,Modifier.weight(1f)){dialog="anthropometry"};ActionTile("Clinical tests",Icons.Default.Biotech,Modifier.weight(1f)){tab="Tests"}}}
+     item{Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){ActionTile("Lab report",Icons.Default.Science,Modifier.weight(1f)){dialog="lab"};ActionTile("Medicine",Icons.Default.Medication,Modifier.weight(1f)){dialog="medicine"}}}
+     item{Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){ActionTile("Anthropometry",Icons.Default.Accessibility,Modifier.weight(1f)){dialog="anthropometry"};ActionTile("Clinical tests",Icons.Default.Biotech,Modifier.weight(1f)){tab="Tests"}}}
      item{SectionTitle("RECENT VITALS")}
      items(vitals.take(4)){r->RecordCard("${r[1]} · ${r[2]}","BP ${r[3]}/${r[4]} mmHg   Pulse ${r[5]} bpm   SpO₂ ${r[7]}%")}
     }
     "People"->MemberManagementScreen(db,refresh,{refresh++}){dialog="person"}
     "Vitals"->LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){item{ButtonRow("Record new vitals"){dialog="vitals"}};items(vitals){r->RecordCard("${r[1]} · ${r[2]}","BP ${r[3]}/${r[4]} · Pulse ${r[5]} · Weight ${r[6]} kg · SpO₂ ${r[7]}%")}}
-    "Reports"->LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){item{ButtonRow("Add laboratory report"){dialog="lab"}};items(labs){r->RecordCard("${r[1]} · ${r[2]}",r[3])}}\n    "Medicines"->MedicineManagementScreen(db,refresh,{refresh++}){dialog="medicine"}
+    "Reports"->LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){item{ButtonRow("Add laboratory report"){dialog="lab"}};items(labs){r->RecordCard("${r[1]} · ${r[2]}",r[3])}}
+    "Medicines"->MedicineManagementScreen(db,refresh,{refresh++}){dialog="medicine"}
     "Analytics"->if(PrivacyAudit.granted(db, "local_analytics")) AnalyticsDashboard(db,refresh) else Column(Modifier.fillMaxSize().padding(24.dp),verticalArrangement=Arrangement.Center){Text("Local analytics is disabled",color=Ink,fontSize=22.sp);Text("Enable local analytics in the Privacy tab to view summaries. No data leaves this device.",color=Ink.copy(.7f))}
     "Reminders"->ReminderManagementScreen(db,refresh){refresh++}
     "History"->HealthHistoryScreen(db,refresh){refresh++}
@@ -207,7 +210,8 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
  when(dialog){ "person"->PersonDialog({dialog=""},{db.addMember(it[0],it[1],it[2],it[3],it[4]);refresh++})
  "vitals"->VitalDialog(members,{dialog=""},{mid,data,notes,date,period->db.addVital(mid,data,notes,date,period);refresh++})
  "lab"->LabDialog(members,{dialog=""},{mid,name,json->db.addLab(mid,name,json);refresh++})
- "medicine"->MedicineDialog(members,{dialog=""},{mid,n,d,s,e,no->db.addMedicine(mid,n,d,s,e,no);refresh++})\n "anthropometry"->AnthropometryDialog(members,{dialog=""},{mid,date,json->db.addAnthropometry(mid,date,json);refresh++})}
+ "medicine"->MedicineDialog(members,{dialog=""},{mid,n,d,s,e,no->db.addMedicine(mid,n,d,s,e,no);refresh++})
+ "anthropometry"->AnthropometryDialog(members,{dialog=""},{mid,date,json->db.addAnthropometry(mid,date,json);refresh++})}
 }
 @Composable private fun MetricCard(label:String,value:String,modifier:Modifier=Modifier){Card(modifier,colors=CardDefaults.cardColors(containerColor=Cream),shape=RoundedCornerShape(18.dp)){Column(Modifier.padding(15.dp)){Text(value,fontSize=24.sp,color=Forest,fontWeight=FontWeight.SemiBold);Text(label,color=Ink.copy(.65f),fontSize=12.sp)}}}
 @Composable private fun ActionTile(label:String,icon:androidx.compose.ui.graphics.vector.ImageVector,modifier:Modifier=Modifier,onClick:()->Unit){Card(modifier.clickable{onClick()},colors=CardDefaults.cardColors(containerColor=Cream),shape=RoundedCornerShape(18.dp)){Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Icon(icon,null,tint=Forest);Text(label,color=Ink,fontWeight=FontWeight.SemiBold)}}}
