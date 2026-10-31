@@ -47,18 +47,24 @@
 - Date-grouped descriptive summaries; missing values are not imputed.
 - Show measurement units and limitations; no diagnostic claims or unsupported pediatric percentiles.
 
-### 7. Reminders
+### 7. Offline Assistant
+- Local llama.cpp GGUF inference, model import and memory checks.
+- Explicit, off-by-default read-only context for one selected member, including supported records and OCR text marked unverified.
+- Android on-device speech recognition and offline-only text-to-speech voices; graceful typed-chat fallback.
+- Model weights are not bundled. The 4B model needs substantial free RAM; device testing is mandatory.
+
+### 8. Reminders
 - Link each reminder to an existing medicine or appointment.
 - One-time or recurring schedule, next due time, notification permission status and cancel action.
 - Explain that WorkManager recurring intervals are approximate, not exact medication alarms.
 
-### 8. Secure backup and restore — intended workflow
+### 9. Secure backup and restore — intended workflow
 - Export: choose family profiles and record categories, optionally constrain a date range, preview counts, generate an encrypted .hmbackup archive, and show a separate high-entropy import code once.
 - Import: select archive, enter import code, authenticate/decrypt, validate manifest and schema, preview incoming counts and duplicate matches, map incoming people to existing profiles or create new profiles, choose skip/keep-both/replace only where safe, then confirm.
 - Restore/merge must execute in one SQL transaction with rollback on any failure; preserve foreign-key relationships and never silently overwrite.
 - Keep backup files and import codes separate. Never log the code or include it in the archive.
 
-### 9. PDF export
+### 10. PDF export
 - Choose profiles and sections before creating the report.
 - Preview the selected report scope and clearly state that PDF output is not encrypted unless an encrypted PDF feature is explicitly added.
 
