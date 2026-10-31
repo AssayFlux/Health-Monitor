@@ -1,8 +1,6 @@
 package com.assayflux.healthmonitor
 
 import android.content.ContentValues
-import android.graphics.Bitmap
-import net.zetetic.database.sqlcipher.SQLiteDatabase
 import fi.iki.elonen.NanoHTTPD
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
@@ -39,14 +37,6 @@ object DeviceTransfer {
         }
         return candidates.sortedBy { it.first }.firstOrNull()?.second
             ?: error("Connect both phones to the same Wi-Fi or hotspot first.")
-    }
-
-    fun qr(text: String): Bitmap {
-        val matrix = MultiFormatWriter().encode(text, BarcodeFormat.QR_CODE, 640, 640)
-        return Bitmap.createBitmap(640,640,Bitmap.Config.ARGB_8888).also { b ->
-            for (x in 0 until 640) for (y in 0 until 640)
-                b.setPixel(x,y,if(matrix[x,y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
-        }
     }
 
     fun export(db: HealthDb, memberId: Long, deviceId: String, deviceName: String): JSONObject {
