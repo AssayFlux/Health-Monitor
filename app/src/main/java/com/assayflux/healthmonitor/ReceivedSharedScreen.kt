@@ -40,6 +40,7 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
  var server by remember{mutableStateOf<DeviceTransfer.Server?>(null)}
  var qr by remember{mutableStateOf<android.graphics.Bitmap?>(null)}
  var pending by remember{mutableStateOf<DeviceTransfer.Pending?>(null)}
+ var pendingHistoryId by remember{mutableStateOf("")}
  var confirm by remember{mutableStateOf(false)}
  var url by remember{mutableStateOf("")};var token by remember{mutableStateOf("")};var receiverId by remember{mutableStateOf("paired-receiver")};var receiverName by remember{mutableStateOf("Receiving device")}
  var status by remember{mutableStateOf("")};var busy by remember{mutableStateOf(false)}
@@ -63,7 +64,7 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
    Button(onClick={
     try{
      server?.stop();val key=DeviceTransfer.token()
-     val s=DeviceTransfer.Server(key){item->scope.launch(Dispatchers.Main){pending=item;status="Transfer received. Review it below."}}
+     val s=DeviceTransfer.Server(key){item->scope.launch(Dispatchers.Main){pending=item;pendingHistoryId=db.recordTransfer("Received",item.senderId,item.senderName,"Awaiting review",item.count,"Received; awaiting your confirmation") ;status="Transfer received. Review it below."}}
      s.start();server=s
      val address="http://"+DeviceTransfer.ip()+":"+s.listeningPort+"/transfer"
      qr=DeviceTransfer.qrBitmap(JSONObject().put("url",address).put("token",key).put("receiver",deviceId).put("receiverName",android.os.Build.MODEL?:"Android device").toString())
@@ -104,7 +105,7 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
     Text("Records: "+p.count,color=Ink,fontSize=12.sp)
     Text("Integrate creates a new member profile; it does not alter existing profiles.",color=Ink,fontSize=12.sp)
     Button(onClick={confirm=true},modifier=Modifier.fillMaxWidth()){Text("Integrate as new member")}
-    TextButton(onClick={pending=null;status="Transfer discarded; nothing imported."}){Text("Discard")}
+    TextButton(onClick={db.updateTransferStatus(pendingHistoryId,"Discarded","Transfer discarded before import");pending=null;pendingHistoryId="";status="Transfer discarded; nothing imported."}){Text("Discard")}
    }
   }}
   if(status.isNotBlank())Text(status,color=Forest,fontSize=12.sp)
@@ -119,7 +120,7 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
  }
  if(confirm)AlertDialog(onDismissRequest={confirm=false},title={Text("Integrate as a separate member?")},
   text={Text("This imports the received records into a new profile and does not overwrite or merge existing members. Transfer payload is plain local-network data, as requested.")},
-  confirmButton={TextButton(onClick={try{pending?.let{DeviceTransfer.integrate(db,it)};pending=null;confirm=false;status="Imported as a separate member profile.";onChanged()}catch(e:Exception){confirm=false;status="Import failed: "+(e.message?:"database error")}}){Text("Integrate")}},
+  confirmButton={TextButton(onClick={try{pending?.let{DeviceTransfer.integrate(db,it)};db.updateTransferStatus(pendingHistoryId,"Integrated","Imported as a separate member profile");pending=null;pendingHistoryId="";confirm=false;status="Imported as a separate member profile.";onChanged()}catch(e:Exception){confirm=false;status="Import failed: "+(e.message?:"database error")}}){Text("Integrate")}},
   dismissButton={TextButton(onClick={confirm=false}){Text("Cancel")}})
  deleteId?.let{id->AlertDialog(onDismissRequest={deleteId=null},title={Text("Delete history entry?")},text={Text("Only history is deleted; imported health data remains.")},confirmButton={TextButton(onClick={db.deleteTransfer(id);deleteId=null;onChanged()}){Text("Delete")}},dismissButton={TextButton(onClick={deleteId=null}){Text("Cancel")}})}
 }
