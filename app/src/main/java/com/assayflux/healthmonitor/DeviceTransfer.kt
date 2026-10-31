@@ -19,8 +19,44 @@ object DeviceTransfer {
     private val tables = listOf("vitals","labs","medicines","clinical_tests","anthropometry","appointments","clinical_history","clinical_records","clinical_documents","reminders")
     data class Pending(val json: JSONObject, val senderId: String, val senderName: String, val count: Int)
 
-    fun token(): String = ByteArray(24).also { SecureRandom().nextBytes(it) }
+    private val random = SecureRandom()
+    private const val ENCRYPTED_FORMAT = "health-monitor-encrypted-transfer"
+    private const val MAX_TRANSFER_BYTES = 14_000_000
+
+    fun token(): String = ByteArray(24).also { random.nextBytes(it) }
         .let { Base64.encodeToString(it, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING) }
+
+    fun encryptionSecret(): String = ByteArray(32).also { random.nextBytes(it) }
+        .let { Base64.encodeToString(it, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING) }
+
+    private fun encryptPayload(payload: JSONObject, secret: String): JSONObject {
+        val key = Base64.decode(secret, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
+        require(key.size == 32) { "Transfer encryption key is invalid." }
+        try {
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(key, "AES"), GCMParameterSpec(128, ByteArray(12).also(random::nextBytes)))
+            val encrypted = cipher.doFinal(payload.toString().toByteArray(Charsets.UTF_8))
+            return JSONObject().put("format", ENCRYPTED_FORMAT).put("version", 1)
+                .put("iv", Base64.encodeToString(cipher.iv, Base64.NO_WRAP))
+                .put("ciphertext", Base64.encodeToString(encrypted, Base64.NO_WRAP))
+        } finally { key.fill(0) }
+    }
+
+    private fun decryptPayload(envelope: JSONObject, secret: String): JSONObject {
+        require(envelope.optString("format") == ENCRYPTED_FORMAT && envelope.optInt("version") == 1) {
+            "Unsupported or unencrypted transfer. Please update both devices."
+        }
+        val key = Base64.decode(secret, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
+        require(key.size == 32) { "Transfer encryption key is invalid." }
+        try {
+            val iv = Base64.decode(envelope.getString("iv"), Base64.NO_WRAP)
+            val ciphertext = Base64.decode(envelope.getString("ciphertext"), Base64.NO_WRAP)
+            require(iv.size == 12 && ciphertext.size in 17..MAX_TRANSFER_BYTES) { "Encrypted transfer is malformed or too large." }
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(key, "AES"), GCMParameterSpec(128, iv))
+            return JSONObject(String(cipher.doFinal(ciphertext), Charsets.UTF_8))
+        } finally { key.fill(0) }
+    }
 
     fun ip(): String {
         val candidates=mutableListOf<Pair<Int,String>>()
@@ -150,7 +186,7 @@ object DeviceTransfer {
         }
     }
 
-    class Server(token: String, private val onReceive:(Pending)->Unit): NanoHTTPD("0.0.0.0",0) {
+    class Server(token: String, private val encryptionSecret:String, private val onReceive:(Pending)->Unit): NanoHTTPD("0.0.0.0",0) {
         private val key=token
         private val expiresAt=System.currentTimeMillis()+5*60*1000
         private val used=AtomicBoolean(false)
@@ -183,8 +219,8 @@ object DeviceTransfer {
         try {
             c.requestMethod="POST"; c.connectTimeout=12000; c.readTimeout=30000; c.doOutput=true
             c.setRequestProperty("Content-Type","application/json"); c.setRequestProperty("Authorization","Bearer "+token)
-            val bytes=payload.toString().toByteArray(Charsets.UTF_8)
-            require(bytes.size<=14000000) { "Transfer too large for one local session." }
+            val bytes=encryptPayload(payload, encryptionSecret).toString().toByteArray(Charsets.UTF_8)
+            require(bytes.size<=MAX_TRANSFER_BYTES) { "Transfer too large for one local session." }
             c.setFixedLengthStreamingMode(bytes.size); c.outputStream.use { it.write(bytes) }
             check(c.responseCode in 200..299) { "Receiver rejected the transfer: "+(c.errorStream?.bufferedReader()?.use{it.readText()} ?: c.responseCode.toString()) }
         } finally { c.disconnect() }
