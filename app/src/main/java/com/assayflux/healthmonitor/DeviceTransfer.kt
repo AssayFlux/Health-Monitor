@@ -7,7 +7,7 @@ import com.google.zxing.MultiFormatWriter
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.NetworkInterface
-import java.security.SecureRandom
+import java.security.SecureRandom\nimport javax.crypto.Cipher\nimport javax.crypto.spec.GCMParameterSpec\nimport javax.crypto.spec.SecretKeySpec
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import android.util.Base64
@@ -158,11 +158,11 @@ object DeviceTransfer {
             if(session.headers["authorization"]!="Bearer "+key) return newFixedLengthResponse(Response.Status.UNAUTHORIZED,"text/plain","Invalid pairing token")
             return try {
                 val declaredLength=session.headers["content-length"]?.toLongOrNull() ?: 0L
-                require(declaredLength in 1..14_000_000) { "Missing or oversized transfer body." }
+                require(declaredLength in 1..MAX_TRANSFER_BYTES) { "Missing or oversized transfer body." }
                 val files=HashMap<String,String>(); session.parseBody(files)
                 val body=files["postData"] ?: error("Empty transfer")
-                require(body.length<=14000000) { "Transfer exceeds size limit." }
-                val p=validate(JSONObject(body))
+                require(body.toByteArray(Charsets.UTF_8).size<=MAX_TRANSFER_BYTES) { "Transfer exceeds size limit." }
+                val p=validate(decryptPayload(JSONObject(body), encryptionSecret))
                 if(!used.compareAndSet(false,true)) return newFixedLengthResponse(Response.Status.GONE,"text/plain","Pairing already used")
                 onReceive(p)
                 newFixedLengthResponse(Response.Status.OK,"text/plain","Transfer received. Review it on the receiving phone.")
@@ -170,7 +170,7 @@ object DeviceTransfer {
         }
     }
 
-    fun send(url:String, token:String, payload:JSONObject) {
+    fun send(url:String, token:String, encryptionSecret:String, payload:JSONObject) {
         val endpoint=java.net.URL(url)
         require(endpoint.protocol=="http" && endpoint.path=="/transfer" && endpoint.userInfo==null && endpoint.query==null && endpoint.ref==null && endpoint.port in 1024..65535) { "QR destination is not a valid local transfer endpoint." }
         require(endpoint.host.matches(Regex("\\d{1,3}(\\.\\d{1,3}){3}"))) { "Transfer QR must contain a local IPv4 address." }
