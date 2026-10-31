@@ -79,13 +79,25 @@ def engine_info():
     return {"engine":"Python","version":"1.1","catalogue_tests":len(diagnostics.TEST_LOOKUP),"units":len(units.UNITS)}
 
 
+def _decode_json_mapping(values):
+    """Decode the JSON boundary used by Kotlin/Chaquopy and validate its shape."""
+    import json
+
+    if isinstance(values, str):
+        values = json.loads(values)
+    if not isinstance(values, dict):
+        raise TypeError("Expected a JSON object (Python dict)")
+    return values
+
+
 def calculate_vitals_json(values):
     import json
-    return json.dumps(calculate_vitals(values), allow_nan=False)
+    return json.dumps(calculate_vitals(_decode_json_mapping(values)), allow_nan=False)
+
 
 def calculate_labs_json(values, age=None, sex="M"):
     import json
-    return json.dumps(calculate_labs(values, age, sex), allow_nan=False)
+    return json.dumps(calculate_labs(_decode_json_mapping(values), age, sex), allow_nan=False)
 
 
 def summarize_results(records):
