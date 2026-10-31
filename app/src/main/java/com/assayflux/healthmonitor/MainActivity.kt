@@ -91,7 +91,7 @@ class HealthDb(c:Context, passphrase:ByteArray):SQLiteOpenHelper(c,"health_monit
 class MainActivity:FragmentActivity(){
  override fun onCreate(savedInstanceState:Bundle?){
   super.onCreate(savedInstanceState)
-  if(!Python.isStarted()) Python.start(AndroidPlatform(this))
+  activeVintagePalette = vintagePalettes.firstOrNull { it.id == getSharedPreferences("appearance_v1", MODE_PRIVATE).getString("palette", "botanical") } ?: vintagePalettes.first()\n  if(!Python.isStarted()) Python.start(AndroidPlatform(this))
   setContent {
    MaterialTheme(colorScheme=lightColorScheme(primary=Forest,background=Ivory,surface=Cream,onSurface=Ink,secondary=Clay)) {
     LocalAuthGate { passphrase -> AuthenticatedDatabaseHost(passphrase) }
@@ -110,7 +110,7 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
    val opened=withContext(Dispatchers.IO) {
     try {
      EncryptedDatabaseMigration.migrateIfNeeded(context,passphrase)
-     HealthDb(context,passphrase).also { ClinicalInteroperability.ensureSchema(it) }
+     HealthDb(context,passphrase).also { ClinicalInteroperability.ensureSchema(it); PrivacyAudit.record(it, "database_unlocked", outcome = "authenticated") }
     } finally { passphrase.fill(0) }
    }
    db=opened
@@ -151,7 +151,7 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
    Toast.makeText(context,"PDF exported",Toast.LENGTH_LONG).show()
   }catch(e:Exception){Toast.makeText(context,"PDF export failed: ${e.message}",Toast.LENGTH_LONG).show()}}
  }
- Scaffold(containerColor=Ivory,floatingActionButton={ExtendedFloatingActionButton(onClick={pdfLauncher.launch("Health-Monitor-Report.pdf")},text={Text("Export PDF")},icon={Icon(Icons.Default.PictureAsPdf,null)})},bottomBar={NavigationBar(containerColor=Cream){listOf("Home","People","Vitals","Reports","Analytics","Reminders","History","Interop","More").forEach{t->NavigationBarItem(selected=tab==t,onClick={tab=t},icon={Icon(when(t){"Home"->Icons.Default.Home;"People"->Icons.Default.Groups;"Vitals"->Icons.Default.MonitorHeart;"Reports"->Icons.Default.Description;"Analytics"->Icons.Default.Analytics;"Reminders"->Icons.Default.Notifications;"History"->Icons.Default.History;"Interop"->Icons.Default.SyncAlt;else->Icons.Default.MoreHoriz},null)},label={Text(t)})}}}){p->
+ Scaffold(containerColor=Ivory,floatingActionButton={ExtendedFloatingActionButton(onClick={pdfLauncher.launch("Health-Monitor-Report.pdf")},text={Text("Export PDF")},icon={Icon(Icons.Default.PictureAsPdf,null)})},bottomBar={NavigationBar(containerColor=Cream){listOf("Home","People","Vitals","Reports","Analytics","Reminders","History","Interop","Privacy","More").forEach{t->NavigationBarItem(selected=tab==t,onClick={tab=t},icon={Icon(when(t){"Home"->Icons.Default.Home;"People"->Icons.Default.Groups;"Vitals"->Icons.Default.MonitorHeart;"Reports"->Icons.Default.Description;"Analytics"->Icons.Default.Analytics;"Reminders"->Icons.Default.Notifications;"History"->Icons.Default.History;"Interop"->Icons.Default.SyncAlt;"Privacy"->Icons.Default.Security;else->Icons.Default.MoreHoriz},null)},label={Text(t)})}}}){p->
   Column(Modifier.fillMaxSize().padding(p)){
    Row(Modifier.fillMaxWidth().padding(horizontal=20.dp, vertical=14.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text("HEALTH MONITOR",fontSize=11.sp,letterSpacing=2.sp,color=Forest,fontWeight=FontWeight.Bold);Text(tab,fontSize=27.sp,color=Ink,fontWeight=FontWeight.SemiBold)};Surface(color=Forest,shape=RoundedCornerShape(50)){Icon(Icons.Default.Favorite, null,tint=Color.White,modifier=Modifier.padding(11.dp).size(20.dp))}}
    when(tab){
@@ -171,13 +171,14 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
     "Reminders"->ReminderManagementScreen(db,refresh){refresh++}
     "History"->HealthHistoryScreen(db,refresh){refresh++}
     "Interop"->InteroperabilityScreen(db,refresh){refresh++}
+    "Privacy"->PrivacyControlsScreen(db,refresh){refresh++}
     else->Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
      Text("Settings & privacy",fontSize=23.sp,fontWeight=FontWeight.SemiBold)
      SectionTitle("VINTAGE COLOUR PALETTE")
      Text("Choose a heritage colour story. Your selection updates the app immediately.",color=Ink.copy(.7f),fontSize=13.sp)
      vintagePalettes.forEach{palette->
       Card(colors=CardDefaults.cardColors(containerColor=if(activeVintagePalette.id==palette.id)palette.cream else Cream),shape=RoundedCornerShape(18.dp)){
-       Row(Modifier.fillMaxWidth().clickable{activeVintagePalette=palette}.padding(14.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){
+       Row(Modifier.fillMaxWidth().clickable{activeVintagePalette=palette;context.getSharedPreferences("appearance_v1",Context.MODE_PRIVATE).edit().putString("palette",palette.id).apply()}.padding(14.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){
         Row(horizontalArrangement=Arrangement.spacedBy(4.dp)){listOf(palette.ivory,palette.cream,palette.forest,palette.sage,palette.clay).forEach{swatch->Surface(color=swatch,shape=RoundedCornerShape(6.dp),modifier=Modifier.size(22.dp)){} }}
         Column(Modifier.weight(1f)){Text(palette.name,color=palette.ink,fontWeight=FontWeight.SemiBold);Text("Warm paper · heritage accents",color=palette.ink.copy(.7f),fontSize=11.sp)}
         RadioButton(selected=activeVintagePalette.id==palette.id,onClick={activeVintagePalette=palette})
