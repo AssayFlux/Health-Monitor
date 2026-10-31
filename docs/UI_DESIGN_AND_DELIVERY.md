@@ -9,7 +9,7 @@
   - Heritage Olive & Terracotta: parchment #F3EBDD, cream #DCCBB1, deep brown #493D32, olive #73734D, terracotta #A65F48.
   - Victorian Rose & Parchment: parchment #F6EFE6, cream #E5D7CA, plum #714B50, rose #B98783, antique gold #9A805C.
 - All palettes retain dark, high-contrast text and consistent semantic colours across navigation, cards, forms and charts.
-- Bottom navigation: Home, People, Vitals, Reports, Analytics, Reminders, More.
+- Phone bottom navigation is intentionally limited to five destinations: Home, Records, Assistant, Analytics and More. The Records hub contains People, Vitals, Reports, Medicines, History and Tests. The More hub contains Reminders, Interoperability, Received & Shared, Privacy and Settings. This avoids squeezing 14 destinations into the phone navigation bar.
 
 ## Screen map
 
@@ -72,7 +72,7 @@
 
 ## Implementation status (2026-10-30)
 - Vintage theme selection UI added with four palette choices; Antique Botanical is the initial default. Surface treatment is warm and softly rounded; the current implementation uses flat cream fills rather than a raster paper texture.
-- Existing native screens: local password gate, Home, People, Vitals, Reports/Medicines, Analytics and Reminders.
+- Existing native screens: local password gate, Home, grouped Records and More hubs, People, Vitals, Reports/Medicines, Analytics, Reminders, History, Tests, Interoperability, Received & Shared, Privacy, Settings and Offline Assistant.
 - Existing primitives: SQLCipher database, local Keystore envelope, biometric-key helper, AES-GCM/PBKDF2 archive helper, migration helper and native PDF writer.
 - Not yet represented as completed merely because primitives exist: biometric prompt-to-database-key integration; selectable archive export UI; import preview and duplicate/profile mapping; transactional merge/restore; selective PDF UI.
-- CI is being repaired and must be green before declaring the branch build-verified.
+- The current phone navigation uses five bottom destinations with grouped secondary hubs. Build and physical-device verification are still required before declaring the UI or branch release-ready.
