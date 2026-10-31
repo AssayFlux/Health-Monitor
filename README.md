@@ -135,7 +135,6 @@ Health information is sensitive. The project is being developed with an offline-
 - **SQLCipher database:** the app's database helper uses SQLCipher rather than Android's plaintext SQLite helper.
 - **Keystore-wrapped database key:** a randomly generated database passphrase is protected by an Android Keystore AES-GCM key.
 - **Legacy migration:** an existing plaintext database is exported to a temporary encrypted database, validated, and replaced through a recoverable file operation. The migration verifies database integrity and row counts for the known tables, including appointments and reminders.
-- **Encrypted backup primitives:** the secure-transfer helper provides PBKDF2-HMAC-SHA-256 key derivation and AES-256-GCM authenticated encryption for archive payloads, plus archive-manifest and ZIP-entry validation.
 - **Local credential primitives:** password-verifier support and progressive authentication throttling are present.
 - **Android app sandbox:** database files are kept in app-private storage.
 - **Reduced data exposure:** cleartext traffic is disabled; Android backup/data-extraction rules and secure-window handling are configured in the app.
@@ -145,7 +144,7 @@ Health information is sensitive. The project is being developed with an offline-
 A security primitive is not the same as a complete user-facing security workflow. In particular:
 
 - Native biometric authentication is **not yet fully connected** to release of the SQLCipher database key.
-- The selective encrypted backup and restore experience, including import preview, profile mapping, duplicate handling, and transactional merge, is not complete.
+- Backup, recovery, and sharing are intentionally not available in this build. The previous encrypted transfer helper has been removed and will be redesigned separately.
 - Account recovery, reinstall/device-loss recovery, and a complete security review need to be addressed before real-world deployment.
 - Security behavior must be tested on supported physical Android devices, not inferred from compilation or emulator tests.
 
@@ -195,7 +194,6 @@ Do not infer that a workflow is complete simply because its helper class or depe
 - SQLCipher-backed database helper and Keystore-wrapped database passphrase.
 - Recoverable legacy database migration with integrity and table row-count validation.
 - Local user-ID/password gate and authentication-throttling foundations.
-- AES-GCM/PBKDF2 encrypted archive primitives and archive validation.
 - WorkManager reminder foundations and a reminder-management screen.
 - Native PDF generation.
 - Descriptive vital-sign analytics and four selectable vintage palettes.
@@ -204,7 +202,7 @@ Do not infer that a workflow is complete simply because its helper class or depe
 **Still incomplete or requiring verification**
 
 - BiometricPrompt-to-SQLCipher-key integration using an authenticated cryptographic object.
-- End-to-end selective encrypted backup and restore screens.
+- Backup, recovery, and sharing (deferred for a separate threat-modelled redesign).
 - Import preview, incoming-member mapping, duplicate-resolution choices, and transactional record merge.
 - Selective profile/category/date filtering for PDF export.
 - Full medicine/appointment-linked recurring reminder behavior and notification onboarding.
@@ -212,7 +210,7 @@ Do not infer that a workflow is complete simply because its helper class or depe
 - Broader migration equivalence and failure-injection tests.
 - Confirmed green CI for the current commit and physical-device validation of security-sensitive flows.
 
-For the detailed visual system, screen map, acceptance criteria, and delivery notes, see [UI design and delivery specification](docs/UI_DESIGN_AND_DELIVERY.md).
+For the detailed visual system, screen map, acceptance criteria, and delivery notes, see [UI design and delivery specification](docs/UI_DESIGN_AND_DELIVERY.md). The global-readiness work is organised in the [three-stage delivery plan](docs/GLOBAL_READINESS_THREE_STAGE_PLAN.md).
 
 ## Limitations and responsible use
 
