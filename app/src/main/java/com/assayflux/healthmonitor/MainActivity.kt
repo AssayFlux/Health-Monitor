@@ -222,6 +222,16 @@ private data class DashboardSnapshot(
  }
  Scaffold(containerColor=Ivory,floatingActionButton={if(tab == "Home") ExtendedFloatingActionButton(onClick={pdfLauncher.launch("Health-Monitor-Report.pdf")},text={Text("Export PDF")},icon={Icon(Icons.Default.PictureAsPdf,null)})},bottomBar={NavigationBar(containerColor=Cream){listOf("Home","Records","Assistant","Analytics","More").forEach{t->val selected=when(t){"Records"->tab in setOf("Records","People","Vitals","Reports","Medicines","History","Tests");"More"->tab in setOf("More","Reminders","Interop","Received & Shared","Privacy","Settings");else->tab==t};NavigationBarItem(selected=selected,onClick={tab=t},icon={Icon(when(t){"Home"->Icons.Default.Home;"Records"->Icons.Default.FolderOpen;"Assistant"->Icons.Default.SmartToy;"Analytics"->Icons.Default.Analytics;else->Icons.Default.MoreHoriz},null)},label={Text(t)})}}}){p->
   Column(Modifier.fillMaxSize().padding(p)){
+   if(dashboard==null && databaseReadError==null) LinearProgressIndicator(Modifier.fillMaxWidth(),color=Forest)
+   databaseReadError?.let { message ->
+    Card(Modifier.fillMaxWidth().padding(horizontal=16.dp),colors=CardDefaults.cardColors(containerColor=Clay.copy(alpha=.12f))) {
+     Column(Modifier.padding(12.dp)) {
+      Text("Database read problem",color=Ink,fontWeight=FontWeight.SemiBold)
+      Text(message,color=Ink,fontSize=12.sp)
+      Text("Your stored records have not been deleted. Close and reopen the app; do not clear app data.",color=Ink,fontSize=12.sp)
+     }
+    }
+   }
    Row(Modifier.fillMaxWidth().padding(horizontal=20.dp, vertical=14.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text("HEALTH MONITOR",fontSize=11.sp,letterSpacing=2.sp,color=Forest,fontWeight=FontWeight.Bold);Text(tab,fontSize=24.sp,color=Ink,fontWeight=FontWeight.SemiBold,maxLines=1,softWrap=false,overflow=TextOverflow.Ellipsis)};Surface(color=Forest,shape=RoundedCornerShape(50)){Icon(Icons.Default.Favorite, null,tint=Color.White,modifier=Modifier.padding(11.dp).size(20.dp))}}
    when(tab){
     "Home"->LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
