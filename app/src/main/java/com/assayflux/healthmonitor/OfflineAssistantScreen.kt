@@ -201,7 +201,7 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
         val memory = android.app.ActivityManager.MemoryInfo()
         (context.getSystemService(android.content.Context.ACTIVITY_SERVICE) as android.app.ActivityManager).getMemoryInfo(memory)
         val estimatedNeed = (file.length() * 1.35).toLong()
-        if (file.length() > 2_500_000_000L && memory.availMem < estimatedNeed) {
+        if (memory.availMem < estimatedNeed) {
             status = "Not enough free RAM for this model right now. Close other apps or import a smaller 0.8B–2B model."
             return
         }
