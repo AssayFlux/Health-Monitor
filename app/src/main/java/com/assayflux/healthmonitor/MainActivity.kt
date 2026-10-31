@@ -56,7 +56,21 @@ val Sage get()=activeVintagePalette.sage
 val Clay get()=activeVintagePalette.clay
 val Ink get()=activeVintagePalette.ink
 
-class HealthDb(c:Context, passphrase:ByteArray, databaseName:String="health_monitor.db"):SQLiteOpenHelper(c,databaseName,passphrase,null,7,0,null,null,false){
+private class OwnedDatabaseKey(val bytes: ByteArray) {
+ fun clear() = bytes.fill(0)
+}
+
+class HealthDb private constructor(
+ c:Context,
+ private val ownedKey:OwnedDatabaseKey,
+ databaseName:String
+):SQLiteOpenHelper(c,databaseName,ownedKey.bytes,null,7,0,null,null,false){
+ constructor(c:Context,passphrase:ByteArray,databaseName:String="health_monitor.db"):
+  this(c,OwnedDatabaseKey(passphrase.copyOf()),databaseName)
+
+ override fun close(){
+  try { super.close() } finally { ownedKey.clear() }
+ }
  override fun onCreate(d:SQLiteDatabase){
   d.execSQL("CREATE TABLE members(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,dob TEXT,sex TEXT,blood TEXT,height REAL,notes TEXT)")
   d.execSQL("CREATE TABLE vitals(id INTEGER PRIMARY KEY AUTOINCREMENT,member_id INTEGER NOT NULL,recorded_at TEXT DEFAULT CURRENT_TIMESTAMP,measurement_date TEXT,time_of_day TEXT,systolic REAL,diastolic REAL,left_systolic REAL,left_diastolic REAL,right_systolic REAL,right_diastolic REAL,pulse REAL,weight REAL,height REAL,spo2 REAL,temp REAL,notes TEXT)")
@@ -164,7 +178,17 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
 
 @Composable private fun HealthApp(db:HealthDb){
  var tab by remember{mutableStateOf("Home")};var refresh by remember{mutableIntStateOf(0)};var dialog by remember{mutableStateOf("")}
- val members=remember(refresh){db.members()};val vitals=remember(refresh){db.vitals()};val labs=remember(refresh){db.labs()};val meds=remember(refresh){db.medicines()}
+ var databaseReadError by remember(db) { mutableStateOf<String?>(null) }
+ fun <T> safeDatabaseRead(block:()->T, fallback:T):T = try { block() } catch(e:Exception) {
+  databaseReadError = e.message ?: "The encrypted database could not be read."
+  fallback
+ }
+ val members=remember(refresh){safeDatabaseRead({db.members()}, emptyList())}
+ val vitals=remember(refresh){safeDatabaseRead({db.vitals()}, emptyList())}
+ val labs=remember(refresh){safeDatabaseRead({db.labs()}, emptyList())}
+ val meds=remember(refresh){safeDatabaseRead({db.medicines()}, emptyList())}
+ val vitalCount=remember(refresh){safeDatabaseRead({db.count("vitals")},0)}
+ val labCount=remember(refresh){safeDatabaseRead({db.count("labs")},0)}
  val context=androidx.compose.ui.platform.LocalContext.current
  val pdfLauncher=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")){uri->
   if(uri!=null){try{
@@ -185,7 +209,7 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
    when(tab){
     "Home"->LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
      item{Card(colors=CardDefaults.cardColors(containerColor=Forest),shape=RoundedCornerShape(24.dp)){Column(Modifier.fillMaxWidth().padding(22.dp)){Text("YOUR FAMILY HEALTH",color=Sage,fontSize=11.sp,fontWeight=FontWeight.Bold,letterSpacing=1.5.sp);Text("A clearer view of everyday wellbeing.",fontSize=25.sp,color=Color.White,fontWeight=FontWeight.SemiBold);Spacer(Modifier.height(8.dp));Text("Private records stored on this device.",color=Color.White.copy(.8f))}}}
-     item{Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){MetricCard("People",members.size.toString(),Modifier.weight(1f));MetricCard("Vitals",db.count("vitals").toString(),Modifier.weight(1f));MetricCard("Reports",db.count("labs").toString(),Modifier.weight(1f))}}
+     item{Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){MetricCard("People",members.size.toString(),Modifier.weight(1f));MetricCard("Vitals",vitalCount.toString(),Modifier.weight(1f));MetricCard("Reports",labCount.toString(),Modifier.weight(1f))}}
      item{Text("QUICK ACTIONS",color=Forest,fontWeight=FontWeight.Bold,fontSize=12.sp,letterSpacing=1.3.sp)}
      item{Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){ActionTile("Add person",Icons.Default.PersonAdd,Modifier.weight(1f)){dialog="person"};ActionTile("Record vitals",Icons.Default.MonitorHeart,Modifier.weight(1f)){dialog="vitals"}}}
      item{Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){ActionTile("Lab report",Icons.Default.Science,Modifier.weight(1f)){dialog="lab"};ActionTile("Medicine",Icons.Default.Medication,Modifier.weight(1f)){dialog="medicine"}}}
