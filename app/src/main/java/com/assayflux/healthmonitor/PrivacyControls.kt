@@ -82,7 +82,7 @@ fun PrivacyControlsScreen(db: HealthDb, refreshToken: Int, onChanged: () -> Unit
         item {
             Text("Privacy safeguards", color = Forest, style = MaterialTheme.typography.titleMedium)
             Text("• Screenshots and task-switcher previews are blocked by FLAG_SECURE\n• Android backup and device-transfer extraction are disabled\n• Notification content is generic and avoids diagnoses and medicine names\n• No cloud account or server sync is configured\n• Audit history records selected local security and consent events", color = Ink.copy(alpha = .75f), fontSize = 12.sp)
-            Text("Encrypted backup and cloud sharing are unavailable. QR device transfer uses plain HTTP over the local network; nearby network observers may be able to read the transfer. Do not uninstall or clear app data as a recovery method.", color = Ink, fontSize = 12.sp)
+            Text("Encrypted backup and cloud sharing are unavailable. QR device transfer encrypts payloads with AES-256-GCM before sending them over the local network. The one-time encryption secret is exchanged in the scanned QR, not in the HTTP request. Use a trusted private Wi-Fi or hotspot; network-level metadata and traffic timing are still visible. Do not uninstall or clear app data as a recovery method.", color = Ink, fontSize = 12.sp)
         }
         item {
             Text("Recent access and consent events", color = Forest, style = MaterialTheme.typography.titleMedium)
