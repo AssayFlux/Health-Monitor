@@ -10,7 +10,10 @@ class SecurityRegressionTests(unittest.TestCase):
 
     def test_assistant_voice_path_is_strictly_on_device(self):
         root = Path(__file__).resolve().parents[2]
-        source = (root / "app/src/main/java/com/assayflux/healthmonitor/OfflineAssistantScreen.kt").read_text()
+        source = (
+            root
+            / "app/src/main/java/com/assayflux/healthmonitor/OfflineAssistantScreen.kt"
+        ).read_text()
         self.assertIn("SpeechRecognizer.createOnDeviceSpeechRecognizer", source)
         self.assertNotIn("SpeechRecognizer.createSpeechRecognizer(", source)
         self.assertIn("!it.isNetworkConnectionRequired", source)
