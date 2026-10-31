@@ -142,7 +142,7 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
  }
  if(confirm)AlertDialog(onDismissRequest={confirm=false},title={Text("Integrate as a separate member?")},
   text={Text("This imports the received records into a new profile and does not overwrite or merge existing members. Transfer payload is plain local-network data, as requested.")},
-  confirmButton={TextButton(onClick={try{pending?.let{DeviceTransfer.integrate(db,it)};db.updateTransferStatus(pendingHistoryId,"Integrated","Imported as a separate member profile");pending=null;pendingHistoryId="";confirm=false;status="Imported as a separate member profile.";onChanged()}catch(e:Exception){confirm=false;status="Import failed: "+(e.message?:"database error")}}){Text("Integrate")}},
+  confirmButton={TextButton(onClick={try{val item=pending ?: error("No pending transfer to integrate.");DeviceTransfer.integrate(db,item,pendingHistoryId);pending=null;pendingHistoryId="";confirm=false;status="Imported as a separate member profile.";onChanged()}catch(e:Exception){confirm=false;status="Import failed: "+(e.message?:"database error")}}){Text("Integrate")}},
   dismissButton={TextButton(onClick={confirm=false}){Text("Cancel")}})
  deleteId?.let{id->AlertDialog(onDismissRequest={deleteId=null},title={Text("Delete history entry?")},text={Text("Only history is deleted; imported health data remains.")},confirmButton={TextButton(onClick={db.deleteTransfer(id);db.discardPendingTransfer(id);if(pendingHistoryId==id){pending=null;pendingHistoryId=""};deleteId=null;onChanged()}){Text("Delete")}},dismissButton={TextButton(onClick={deleteId=null}){Text("Cancel")}})}
 }
