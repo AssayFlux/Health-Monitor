@@ -90,7 +90,7 @@ object DeviceTransfer {
     }
 
     /** Atomic import into a brand-new member; existing profiles are never modified. */
-    fun integrate(db: HealthDb, p: Pending): Long {
+    fun integrate(db: HealthDb, p: Pending, historyId: String): Long {
         val sql=db.writableDatabase
         sql.beginTransaction()
         try {
@@ -141,6 +141,7 @@ object DeviceTransfer {
                 v.put("id",UUID.randomUUID().toString()); v.put("member_id",mid)
                 sql.insertOrThrow("reminders",null,v)
             }
+            db.completeTransferImport(historyId,"Imported as a separate member profile")
             sql.setTransactionSuccessful()
             return mid
         } finally { sql.endTransaction() }
