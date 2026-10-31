@@ -7,7 +7,6 @@
 
 <p align="center">
   <a href="https://github.com/AssayFlux/Health-Monitor/actions/workflows/quality-and-integrity.yml"><img src="https://github.com/AssayFlux/Health-Monitor/actions/workflows/quality-and-integrity.yml/badge.svg?branch=main" alt="Quality and integrity checks"/></a>
-  <a href="https://github.com/AssayFlux/Health-Monitor/actions/workflows/full-validation.yml"><img src="https://github.com/AssayFlux/Health-Monitor/actions/workflows/full-validation.yml/badge.svg?branch=main" alt="Full validation"/></a>
   <img src="https://img.shields.io/badge/Platform-Android-3DDC84?logo=android&logoColor=white" alt="Android"/>
   <img src="https://img.shields.io/badge/Min%20SDK-26-blue" alt="Minimum SDK 26"/>
   <img src="https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin and Jetpack Compose"/>
@@ -83,7 +82,7 @@ Open the project root in Android Studio, allow Gradle sync to complete, then run
 ./gradlew :app:connectedDebugAndroidTest
 ```
 
-The connected test task requires a running emulator or attached device. CI also builds Debug and Release APK/AAB variants and uploads build artifacts. Check the [Actions tab](https://github.com/AssayFlux/Health-Monitor/actions) for the latest branch status.
+The connected test task requires a running emulator or attached device. Routine CI intentionally does not package APK/AAB files or boot an emulator. It runs Python lint/format/syntax checks, security and contract regression tests, maintenance-script validation, and Android lint/source compilation. Build packaging and device testing are deferred until the app feature set is ready. Check the [Actions tab](https://github.com/AssayFlux/Health-Monitor/actions) for the latest branch status.
 
 ## Project structure
 
@@ -100,7 +99,7 @@ tests/                                           # Python regression tests
 
 ## Privacy and responsible use
 
-The project follows an offline-first approach. The current codebase includes SQLCipher-backed storage, Keystore-wrapped database-key foundations, local authentication components and migration validation.
+The project follows an offline-first approach. The current codebase includes SQLCipher-backed storage, Keystore-wrapped database-key foundations and local authentication components. Legacy plaintext-to-encrypted database migration has been removed; a QR-paired device-to-device transfer and restore flow is planned but is not implemented yet.
 
 These foundations do not yet constitute a complete security or recovery workflow. Biometric-to-database-key integration, backup/recovery design, broader device validation and independent security review remain outstanding. Do not store sensitive real-world patient information in pre-release builds.
 
@@ -111,11 +110,11 @@ Health Monitor is an informational record-keeping tool—not a medical device, e
 **Present in the codebase**
 - Native family health-record screens and member-linked data.
 - Vitals, lab observations, anthropometry and descriptive analytics.
-- SQLCipher database helper and recoverable legacy migration foundations.
+- SQLCipher database helper and Android Keystore-protected database-key storage.
 - Python calculation engine integrated through Chaquopy.
 - FHIR R4 and Health Connect integration foundations.
 - On-device OCR review flow, PDF generation and local reminder foundations.
-- Android build, unit-test and instrumentation-test workflows.
+- Core source, Python contract, security and maintainability validation workflow.
 
 **Still in progress**
 - Complete biometric authentication integration and recovery design.
