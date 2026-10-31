@@ -35,7 +35,10 @@ The application is designed around a local-first family health record:
 - **Appointments and reminders** — manage appointment records and local scheduled notifications.
 - **Analytics** — explore saved measurements using date-grouped charts and descriptive statistics.
 - **PDF reports** — generate reports on-device using the native PDF implementation.
-- **Vintage visual themes** — choose from four warm, restrained palettes in Settings.\n- **Clinical interoperability** — versioned clinical projection, FHIR R4 Bundle exchange with a human review queue, terminology identifiers and UCUM unit handling.\n- **Health Connect** — permission-based read import for heart rate, steps and body weight.\n- **Document OCR** — on-device extraction from report images, saved as unverified text for manual review.
+- **Vintage visual themes** — choose from four warm, restrained palettes in Settings.
+- **Clinical interoperability** — versioned clinical projection, FHIR R4 Bundle exchange with a human review queue, terminology identifiers and UCUM unit handling.
+- **Health Connect** — permission-based read import for heart rate, steps and body weight.
+- **Document OCR** — on-device extraction from report images, saved as unverified text for manual review.
 
 The interface is native Android UI. The project does not use a website runtime or WebView.
 
@@ -48,7 +51,10 @@ The interface is native Android UI. The project does not use a website runtime o
 | UI | Jetpack Compose and Material 3 |
 | Database | SQLCipher for Android |
 | Key protection | Android Keystore-backed AES-GCM key wrapping |
-| Background work | AndroidX WorkManager |\n| Clinical exchange | FHIR R4 JSON mapping and normalized local projection |\n| Device health data | AndroidX Health Connect |\n| Document text extraction | Google ML Kit Text Recognition |
+| Background work | AndroidX WorkManager |
+| Clinical exchange | FHIR R4 JSON mapping and normalized local projection |
+| Device health data | AndroidX Health Connect |
+| Document text extraction | Google ML Kit Text Recognition |
 | Biometric foundation | AndroidX Biometric and a Keystore-backed key helper |
 | Calculation layer | Embedded Python 3.11 via Chaquopy |
 | Build language level | Java 17 / Kotlin JVM target 17 |
@@ -66,11 +72,14 @@ The interface is native Android UI. The project does not use a website runtime o
 │       │   ├── LocalKeyVault.kt
 │       │   ├── LocalAuthGate.kt
 │       │   ├── BiometricDatabaseKey.kt
-│       │   ├── SecureTransfer.kt
+│       │   ├── ClinicalInteroperability.kt
+│       │   ├── HealthConnectBridge.kt
+│       │   ├── InteroperabilityScreen.kt
 │       │   ├── ReminderScheduler.kt
 │       │   └── NativePdfExport.kt
 │       └── python/
 └── docs/
+    ├── STAGE_2_INTEROPERABILITY.md
     └── UI_DESIGN_AND_DELIVERY.md
 ```
 
@@ -193,7 +202,11 @@ Do not infer that a workflow is complete simply because its helper class or depe
 **Implemented or present in the current codebase**
 
 - Native Kotlin/Jetpack Compose application and local health-record screens.
-- Structured family medical-history capture and browsing (conditions, allergies, procedures, immunisations, family history, encounters).\n- Versioned normalized clinical projection with source provenance and verification states.\n- FHIR R4 collection Bundle export and staged import review for supported clinical resource types.\n- Health Connect read integration for heart rate, steps and weight, subject to provider availability and user permission.\n- ML Kit image OCR with manual review before clinical data entry.
+- Structured family medical-history capture and browsing (conditions, allergies, procedures, immunisations, family history, encounters).
+- Versioned normalized clinical projection with source provenance and verification states.
+- FHIR R4 collection Bundle export and staged import review for supported clinical resource types.
+- Health Connect read integration for heart rate, steps and weight, subject to provider availability and user permission.
+- ML Kit image OCR with manual review before clinical data entry.
 - SQLCipher-backed database helper and Keystore-wrapped database passphrase.
 - Recoverable legacy database migration with integrity and table row-count validation.
 - Local user-ID/password gate and authentication-throttling foundations.
