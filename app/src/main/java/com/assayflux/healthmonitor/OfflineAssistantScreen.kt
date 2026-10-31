@@ -29,6 +29,7 @@ import androidx.core.content.ContextCompat
 import dev.ffmpegkit.llama.Llama
 import dev.ffmpegkit.llama.LlamaConfig
 import dev.ffmpegkit.llama.LlamaModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
@@ -45,6 +46,7 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val screenDisposed = remember { AtomicBoolean(false) }
+    val inferenceInProgress = remember { AtomicBoolean(false) }
     val modelDir = remember { (context.getExternalFilesDir("offline-models") ?: File(context.filesDir, "offline-models")).apply { mkdirs() } }
     var modelFile by remember { mutableStateOf(listOf("assistant-import.gguf", "assistant.gguf").map { File(modelDir, it) }.firstOrNull { it.isFile && it.length() > 100_000_000L }) }
     var modelName by remember { mutableStateOf(modelFile?.name ?: "") }
@@ -95,11 +97,10 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
     }
 
     val currentModel by rememberUpdatedState(loadedModel)
-    val inferenceActive by rememberUpdatedState(generating)
     DisposableEffect(Unit) {
         onDispose {
             screenDisposed.set(true)
-            if (!inferenceActive) currentModel?.let(Llama::releaseModel)
+            if (!inferenceInProgress.get()) currentModel?.let(Llama::releaseModel)
         }
     }
 
@@ -186,10 +187,10 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
         scope.launch {
             loadingModel = true
             status = "Loading model into memory. This may take a while…"
+            val pendingModel = AtomicReference<LlamaModel?>(null)
             try {
                 loadedModel?.let(Llama::releaseModel)
                 loadedModel = null
-                val pendingModel = AtomicReference<LlamaModel?>(null)
                 val model = withContext(NonCancellable + Dispatchers.IO) {
                     Llama.loadModel(
                         modelPath = file.absolutePath,
@@ -207,6 +208,7 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
                 loadedModel = null
                 if (!screenDisposed.get()) status = "Model could not be loaded: ${failure.message ?: "runtime error"}"
             } finally {
+                pendingModel.getAndSet(null)?.let(Llama::releaseModel)
                 loadingModel = false
             }
         }
@@ -215,13 +217,14 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
     fun sendMessage(raw: String) {
         val question = raw.trim()
         val model = loadedModel
-        if (question.isBlank() || generating) return
+        if (question.isBlank() || inferenceInProgress.get()) return
         if (model == null || !model.isLoaded) {
             status = "Load a compatible local GGUF model before chatting."
             return
         }
         messages += AssistantMessage(question, true)
         input = ""
+        inferenceInProgress.set(true)
         generating = true
         scope.launch {
             try {
@@ -254,9 +257,12 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
                     if (offlineVoiceReady) tts?.speak(answer, TextToSpeech.QUEUE_FLUSH, null, "health-assistant-reply")
                     else status = "Reply generated. No offline TTS voice is installed on this device."
                 }
+            } catch (failure: CancellationException) {
+                throw failure
             } catch (failure: Throwable) {
                 messages += AssistantMessage("I couldn't complete that request: ${failure.message ?: "local inference error"}", false)
             } finally {
+                inferenceInProgress.set(false)
                 generating = false
                 if (screenDisposed.get()) Llama.releaseModel(model)
             }
