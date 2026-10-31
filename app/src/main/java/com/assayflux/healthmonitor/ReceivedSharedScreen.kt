@@ -84,7 +84,8 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
   Text("Transfer data is not encrypted. Use a trusted private Wi-Fi or hotspot; devices on the same network may be able to read the traffic.",color=Clay,fontSize=12.sp)
   Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
    Button(onClick={
-    try{
+    if(pending!=null){status="Integrate or discard the current received transfer before receiving another."}
+    else try{
      server?.stop();val key=DeviceTransfer.token()
      val s=DeviceTransfer.Server(key){item->scope.launch(Dispatchers.IO){val historyId=db.recordTransfer("Received",item.senderId,item.senderName,"Awaiting review",item.count,"Received; awaiting your confirmation");db.savePendingTransfer(historyId,item.json.toString());withContext(Dispatchers.Main){pending=item;pendingHistoryId=historyId;onChanged();status="Transfer received. Review it below."}}}
      s.start();server=s
