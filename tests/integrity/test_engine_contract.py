@@ -44,6 +44,16 @@ class EngineContractTests(unittest.TestCase):
         self.assertIn("bmi", decoded)
         self.assertTrue(math.isfinite(decoded["bmi"]["value"]))
 
+    def test_json_boundary_accepts_serialized_kotlin_payload(self):
+        payload = json.dumps(
+            {"weight_kg": 70, "height_cm": 175, "age": 30, "sex": "M"}
+        )
+        decoded = json.loads(health_engine.calculate_vitals_json(payload))
+        self.assertEqual(decoded["bmi"]["value"], 22.9)
+
+        with self.assertRaises(TypeError):
+            health_engine.calculate_vitals_json([70, 175, 30, "M"])
+
     def test_observation_normalization_rejects_invalid_enum(self):
         with self.assertRaises(ValueError):
             observation_engine.normalize_observation({"result_kind": "unknown-kind"})
