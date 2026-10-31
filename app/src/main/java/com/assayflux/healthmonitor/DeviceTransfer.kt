@@ -102,7 +102,7 @@ object DeviceTransfer {
                         val value=old.opt(k)
                         when {
                             value==null || value==JSONObject.NULL -> v.putNull(k)
-                            k=="logical_id" -> v.put(k,UUID.randomUUID().toString())
+                            k=="logical_id" || k=="document_id" -> v.put(k,UUID.randomUUID().toString())
                             value is Number -> v.put(k,value.toString())
                             else -> v.put(k,value.toString())
                         }
@@ -147,9 +147,11 @@ object DeviceTransfer {
 
     class Server(token: String, private val onReceive:(Pending)->Unit): NanoHTTPD("0.0.0.0",0) {
         private val key=token
+        private val expiresAt=System.currentTimeMillis()+5*60*1000
         @Volatile private var used=false
         override fun serve(session:IHTTPSession): Response {
             if(session.method!=Method.POST || session.uri!="/transfer") return newFixedLengthResponse(Response.Status.NOT_FOUND,"text/plain","Not found")
+            if(System.currentTimeMillis()>expiresAt) return newFixedLengthResponse(Response.Status.GONE,"text/plain","Pairing expired")
             if(used) return newFixedLengthResponse(Response.Status.GONE,"text/plain","Pairing expired")
             if(session.headers["authorization"]!="Bearer "+key) return newFixedLengthResponse(Response.Status.UNAUTHORIZED,"text/plain","Invalid pairing token")
             return try {
