@@ -2,6 +2,7 @@ package com.assayflux.healthmonitor
 
 import android.Manifest
 import android.content.Intent
+import android.net.Uri
 import android.content.pm.PackageManager
 import android.os.Build
 import android.speech.RecognitionListener
@@ -40,8 +41,8 @@ private data class AssistantMessage(val text: String, val fromUser: Boolean)
 fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val modelDir = remember { File(context.filesDir, "offline-models").apply { mkdirs() } }
-    var modelFile by remember { mutableStateOf(File(modelDir, "assistant.gguf").takeIf { it.isFile && it.length() > 0 }) }
+    val modelDir = remember { (context.getExternalFilesDir("offline-models") ?: File(context.filesDir, "offline-models")).apply { mkdirs() } }
+    var modelFile by remember { mutableStateOf(listOf("assistant-import.gguf", "assistant.gguf").map { File(modelDir, it) }.firstOrNull { it.isFile && it.length() > 100_000_000L }) }
     var modelName by remember { mutableStateOf(modelFile?.name ?: "") }
     var loadedModel by remember { mutableStateOf<LlamaModel?>(null) }
     var loadingModel by remember { mutableStateOf(false) }
@@ -91,7 +92,7 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
     }
 
     val importModel = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
+        if (uri != null && !generating) {
             scope.launch {
                 loadingModel = true
                 status = "Copying model into private app storage…"
@@ -134,6 +135,9 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
         sections += "LAB TESTS: " + db.rows(
             "SELECT COALESCE(recorded_at,''),COALESCE(category,''),parameter,COALESCE(value_numeric,value_text,''),COALESCE(unit,''),COALESCE(ref_low,''),COALESCE(ref_high,''),COALESCE(status,''),COALESCE(notes,'') FROM clinical_tests WHERE member_id=$memberId ORDER BY id DESC LIMIT 30"
         ).joinToString("; ") { it.joinToString(", ") }
+        sections += "LAB REPORTS: " + db.rows(
+            "SELECT COALESCE(recorded_at,''),COALESCE(name,'Report'),values_json FROM labs WHERE member_id=$memberId ORDER BY id DESC LIMIT 20"
+        ).joinToString("; ") { it.joinToString(", ") }
         sections += "MEDICINES: " + db.rows(
             "SELECT name,COALESCE(dose,''),COALESCE(start_date,''),COALESCE(end_date,''),COALESCE(notes,'') FROM medicines WHERE member_id=$memberId ORDER BY id DESC LIMIT 30"
         ).joinToString("; ") { it.joinToString(", ") }
@@ -148,10 +152,13 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
 
     fun loadModel() {
         val file = modelFile ?: run { status = "Import a GGUF model first."; return }
+        if (!Build.SUPPORTED_ABIS.contains("arm64-v8a")) { status = "The current embedded llama.cpp package supports ARM64 phones only."; return }
         scope.launch {
             loadingModel = true
             status = "Loading model into memory. This may take a while…"
             try {
+                loadedModel?.let(Llama::releaseModel)
+                loadedModel = null
                 val model = withContext(Dispatchers.IO) {
                     Llama.loadModel(
                         modelPath = file.absolutePath,
@@ -160,7 +167,7 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
                 }
                 loadedModel = model
                 status = "Offline model loaded and ready."
-            } catch (failure: Exception) {
+            } catch (failure: Throwable) {
                 loadedModel = null
                 status = "Model could not be loaded: ${failure.message ?: "runtime error"}"
             } finally {
@@ -209,7 +216,7 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
                     if (offlineVoiceReady) tts?.speak(answer, TextToSpeech.QUEUE_FLUSH, null, "health-assistant-reply")
                     else status = "Reply generated. No offline TTS voice is installed on this device."
                 }
-            } catch (failure: Exception) {
+            } catch (failure: Throwable) {
                 messages += AssistantMessage("I couldn't complete that request: ${failure.message ?: "local inference error"}", false)
             } finally {
                 generating = false
@@ -245,6 +252,7 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
         recognizer.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, java.util.Locale.getDefault().toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
         })
     }
@@ -266,11 +274,12 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
                 Text("LOCAL MODEL", color = Forest, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                 Text(if (modelFile == null) "No model imported" else modelName, color = Ink, fontWeight = FontWeight.SemiBold)
                 Text("Recommended: Qwen 3.5 4B Q4 GGUF on phones with 8 GB+ RAM. For lower-memory devices, use a 0.8B–2B quantized GGUF. Model files are not bundled in the APK.", color = Ink.copy(alpha = .72f), fontSize = 11.sp)
+                TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://huggingface.co/Boollm/Qwen3.5-4B-GGUF"))) }) { Text("Get Qwen 3.5 GGUF model") }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { importModel.launch(arrayOf("application/octet-stream", "application/x-gguf", "*/*")) }, enabled = !loadingModel) {
+                    OutlinedButton(onClick = { importModel.launch(arrayOf("application/octet-stream", "application/x-gguf", "*/*")) }, enabled = !loadingModel && !generating) {
                         Icon(Icons.Default.FolderOpen, null); Spacer(Modifier.width(5.dp)); Text("Import GGUF")
                     }
-                    Button(onClick = { loadModel() }, enabled = modelFile != null && !loadingModel, colors = ButtonDefaults.buttonColors(containerColor = Forest)) {
+                    Button(onClick = { loadModel() }, enabled = modelFile != null && !loadingModel && !generating, colors = ButtonDefaults.buttonColors(containerColor = Forest)) {
                         if (loadingModel) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp) else Icon(Icons.Default.Memory, null)
                         Spacer(Modifier.width(5.dp)); Text("Load")
                     }
