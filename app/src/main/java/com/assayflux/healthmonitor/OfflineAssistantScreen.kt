@@ -111,26 +111,41 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
                 status = "Copying model into private app storage…"
                 try {
                     val target = File(modelDir, "assistant-import.gguf")
+                    val temporary = File(modelDir, "assistant-import.gguf.part")
                     val previousModel = loadedModel
                     loadedModel = null
                     if (previousModel != null) withContext(Dispatchers.IO) {
                         Llama.releaseModel(previousModel)
                     }
                     withContext(Dispatchers.IO) {
-                        context.contentResolver.openInputStream(uri).use { stream ->
-                            requireNotNull(stream) { "Could not open selected model file." }
-                            FileOutputStream(target).use { output ->
-                                stream.copyTo(output, 1024 * 1024)
-                                output.fd.sync()
+                        try {
+                            context.contentResolver.openInputStream(uri).use { stream ->
+                                requireNotNull(stream) { "Could not open selected model file." }
+                                FileOutputStream(temporary).use { output ->
+                                    stream.copyTo(output, 1024 * 1024)
+                                    output.fd.sync()
+                                }
                             }
+                            require(temporary.length() > 100_000_000L) {
+                                "The selected file is too small to be a supported language model."
+                            }
+                            val header = ByteArray(4)
+                            java.io.RandomAccessFile(temporary, "r").use { it.readFully(header) }
+                            require(String(header, Charsets.US_ASCII) == "GGUF") {
+                                "This file is not a GGUF model. Choose a .gguf model file."
+                            }
+                            if (target.exists()) require(target.delete()) {
+                                "Could not replace the previous imported model."
+                            }
+                            check(temporary.renameTo(target)) { "Could not finish saving the model file." }
+                        } catch (failure: Exception) {
+                            temporary.delete()
+                            throw failure
                         }
-                        require(target.length() > 100_000_000L) { "The selected file is too small to be a language model." }
                     }
-                    loadedModel = null
-                    modelFile?.takeIf { it.name == "assistant-import.gguf" }?.delete()
                     modelFile = target
                     modelName = target.name
-                    status = "Model copied: ${target.length() / (1024 * 1024)} MB. Load it when ready."
+                    status = "Model copied and GGUF header verified: ${target.length() / (1024 * 1024)} MB. Load it when ready."
                 } catch (failure: Exception) {
                     status = "Model import failed: ${failure.message ?: "unknown error"}"
                 } finally {
