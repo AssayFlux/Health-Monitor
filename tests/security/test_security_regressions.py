@@ -1,11 +1,24 @@
 import math
 import unittest
+from pathlib import Path
 
 import health_engine
 import observation_engine
 
 
 class SecurityRegressionTests(unittest.TestCase):
+
+    def test_assistant_voice_path_is_strictly_on_device(self):
+        root = Path(__file__).resolve().parents[2]
+        source = (root / "app/src/main/java/com/assayflux/healthmonitor/OfflineAssistantScreen.kt").read_text()
+        self.assertIn("SpeechRecognizer.createOnDeviceSpeechRecognizer", source)
+        self.assertNotIn("SpeechRecognizer.createSpeechRecognizer(", source)
+        self.assertIn("!it.isNetworkConnectionRequired", source)
+        self.assertIn("var useRecords by remember { mutableStateOf(false) }", source)
+        self.assertIn("Llama.complete(model = model", source)
+        self.assertNotIn("OkHttpClient", source)
+        self.assertNotIn("HttpURLConnection", source)
+
     def test_non_finite_measurements_are_not_serialized(self):
         result = health_engine.summarize_results(
             [
