@@ -1,5 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <uses-permission android:name="android.permission.health.READ_WEIGHT" />
+    <queries><package android:name="com.google.android.apps.healthdata" /></queries>
  <application
   android:name=".HealthMonitorApplication"
   android:theme="@android:style/Theme.Material.Light.NoActionBar"
