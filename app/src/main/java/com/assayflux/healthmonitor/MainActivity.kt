@@ -176,19 +176,36 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
  }
 }
 
+private data class DashboardSnapshot(
+ val members:List<List<String>>,
+ val vitals:List<List<String>>,
+ val labs:List<List<String>>,
+ val medicines:List<List<String>>,
+ val vitalCount:Int,
+ val labCount:Int
+)
+
 @Composable private fun HealthApp(db:HealthDb){
  var tab by remember{mutableStateOf("Home")};var refresh by remember{mutableIntStateOf(0)};var dialog by remember{mutableStateOf("")}
- var databaseReadError by remember(db) { mutableStateOf<String?>(null) }
- fun <T> safeDatabaseRead(block:()->T, fallback:T):T = try { block() } catch(e:Exception) {
-  databaseReadError = e.message ?: "The encrypted database could not be read."
-  fallback
+ var dashboard by remember(db){mutableStateOf<DashboardSnapshot?>(null)}
+ var databaseReadError by remember(db){mutableStateOf<String?>(null)}
+ LaunchedEffect(db,refresh) {
+  dashboard=null
+  databaseReadError=null
+  try {
+   dashboard=withContext(Dispatchers.IO) {
+    DashboardSnapshot(db.members(),db.vitals(),db.labs(),db.medicines(),db.count("vitals"),db.count("labs"))
+   }
+  } catch(e:Exception) {
+   databaseReadError=e.message ?: "The encrypted database could not be read."
+  }
  }
- val members=remember(refresh){safeDatabaseRead({db.members()}, emptyList())}
- val vitals=remember(refresh){safeDatabaseRead({db.vitals()}, emptyList())}
- val labs=remember(refresh){safeDatabaseRead({db.labs()}, emptyList())}
- val meds=remember(refresh){safeDatabaseRead({db.medicines()}, emptyList())}
- val vitalCount=remember(refresh){safeDatabaseRead({db.count("vitals")},0)}
- val labCount=remember(refresh){safeDatabaseRead({db.count("labs")},0)}
+ val members=dashboard?.members.orEmpty()
+ val vitals=dashboard?.vitals.orEmpty()
+ val labs=dashboard?.labs.orEmpty()
+ val meds=dashboard?.medicines.orEmpty()
+ val vitalCount=dashboard?.vitalCount ?: 0
+ val labCount=dashboard?.labCount ?: 0
  val context=androidx.compose.ui.platform.LocalContext.current
  val pdfLauncher=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")){uri->
   if(uri!=null){try{
