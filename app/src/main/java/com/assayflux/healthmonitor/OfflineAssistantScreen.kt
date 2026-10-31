@@ -88,7 +88,7 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
     }
 
     DisposableEffect(loadedModel) {
-        onDispose { loadedModel?.let(Llama::releaseModel) }
+        onDispose { if (loadedModel != null) Llama.releaseModel(loadedModel!!) }
     }
 
     val importModel = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
