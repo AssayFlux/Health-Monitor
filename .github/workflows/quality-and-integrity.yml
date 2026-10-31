@@ -45,4 +45,5 @@ jobs:
           PYTHONPATH: app/src/main/python
         run: |
           python -m unittest discover -s tests/integrity -v
+          python -m unittest discover -s tests/security -v
           python -m compileall -q app/src/main/python
