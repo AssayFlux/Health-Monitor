@@ -64,7 +64,7 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
    Button(onClick={
     try{
      server?.stop();val key=DeviceTransfer.token()
-     val s=DeviceTransfer.Server(key){item->scope.launch(Dispatchers.Main){pending=item;pendingHistoryId=db.recordTransfer("Received",item.senderId,item.senderName,"Awaiting review",item.count,"Received; awaiting your confirmation") ;status="Transfer received. Review it below."}}
+     val s=DeviceTransfer.Server(key){item->scope.launch(Dispatchers.Main){pending=item;pendingHistoryId=db.recordTransfer("Received",item.senderId,item.senderName,"Awaiting review",item.count,"Received; awaiting your confirmation");onChanged();status="Transfer received. Review it below."}}
      s.start();server=s
      val address="http://"+DeviceTransfer.ip()+":"+s.listeningPort+"/transfer"
      qr=DeviceTransfer.qrBitmap(JSONObject().put("url",address).put("token",key).put("receiver",deviceId).put("receiverName",android.os.Build.MODEL?:"Android device").toString())
@@ -105,7 +105,7 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
     Text("Records: "+p.count,color=Ink,fontSize=12.sp)
     Text("Integrate creates a new member profile; it does not alter existing profiles.",color=Ink,fontSize=12.sp)
     Button(onClick={confirm=true},modifier=Modifier.fillMaxWidth()){Text("Integrate as new member")}
-    TextButton(onClick={db.updateTransferStatus(pendingHistoryId,"Discarded","Transfer discarded before import");pending=null;pendingHistoryId="";status="Transfer discarded; nothing imported."}){Text("Discard")}
+    TextButton(onClick={db.updateTransferStatus(pendingHistoryId,"Discarded","Transfer discarded before import");pending=null;pendingHistoryId="";status="Transfer discarded; nothing imported.";onChanged()}){Text("Discard")}
    }
   }}
   if(status.isNotBlank())Text(status,color=Forest,fontSize=12.sp)
