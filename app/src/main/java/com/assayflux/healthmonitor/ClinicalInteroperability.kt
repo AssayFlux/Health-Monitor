@@ -66,6 +66,20 @@ object ClinicalInteroperability {
             sql.execSQL("CREATE TABLE IF NOT EXISTS privacy_consents(consent_key TEXT PRIMARY KEY, granted INTEGER NOT NULL, policy_version TEXT NOT NULL, decided_at TEXT NOT NULL, source TEXT NOT NULL DEFAULT 'in_app')")
             sql.execSQL("CREATE TABLE IF NOT EXISTS access_audit(audit_id INTEGER PRIMARY KEY AUTOINCREMENT, event_type TEXT NOT NULL, subject_type TEXT, subject_id TEXT, outcome TEXT NOT NULL, details TEXT, occurred_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
             sql.execSQL("CREATE INDEX IF NOT EXISTS idx_access_audit_time ON access_audit(occurred_at)")
+            val auditedTables = listOf(
+                Triple("members", "id", "members"), Triple("vitals", "id", "vitals"),
+                Triple("labs", "id", "labs"), Triple("medicines", "id", "medicines"),
+                Triple("clinical_tests", "id", "clinical_tests"), Triple("anthropometry", "id", "anthropometry"),
+                Triple("appointments", "id", "appointments"), Triple("reminders", "id", "reminders"),
+                Triple("clinical_history", "id", "clinical_history"),
+                Triple("clinical_records", "logical_id", "clinical_records"),
+                Triple("clinical_documents", "document_id", "clinical_documents")
+            )
+            auditedTables.forEach { (table, key, label) ->
+                sql.execSQL("CREATE TRIGGER IF NOT EXISTS audit_${table}_insert AFTER INSERT ON ${table} BEGIN INSERT INTO access_audit(event_type,subject_type,subject_id,outcome) VALUES('record_created','${label}',CAST(NEW.${key} AS TEXT),'success'); END")
+                sql.execSQL("CREATE TRIGGER IF NOT EXISTS audit_${table}_update AFTER UPDATE ON ${table} BEGIN INSERT INTO access_audit(event_type,subject_type,subject_id,outcome) VALUES('record_updated','${label}',CAST(NEW.${key} AS TEXT),'success'); END")
+                sql.execSQL("CREATE TRIGGER IF NOT EXISTS audit_${table}_delete AFTER DELETE ON ${table} BEGIN INSERT INTO access_audit(event_type,subject_type,subject_id,outcome) VALUES('record_deleted','${label}',CAST(OLD.${key} AS TEXT),'success'); END")
+            }
             sql.execSQL("""CREATE TABLE IF NOT EXISTS terminology_mappings(
                 source_system TEXT NOT NULL, source_code TEXT NOT NULL, target_system TEXT NOT NULL,
                 target_code TEXT NOT NULL, target_display TEXT NOT NULL, jurisdiction TEXT,
