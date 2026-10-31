@@ -42,6 +42,7 @@ class BiometricDatabaseKey(private val context: Context) {
         val key = try { loadKey() } catch (_: Exception) {
             val store = KeyStore.getInstance(STORE).apply { load(null) }
             if (store.containsAlias(ALIAS)) store.deleteEntry(ALIAS)
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(ENVELOPE).commit()
             null
         } ?: generateKey()
         return Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key) }
