@@ -65,14 +65,15 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
     }
 
     DisposableEffect(Unit) {
-        val engine = TextToSpeech(context) { result ->
+        lateinit var engine: TextToSpeech
+        engine = TextToSpeech(context) { result ->
             if (result == TextToSpeech.SUCCESS) {
-                val available = tts?.voices.orEmpty()
+                val available = engine.voices.orEmpty()
                 val preferredLanguage = java.util.Locale.getDefault().language
                 val voice = available.firstOrNull { !it.isNetworkConnectionRequired && it.locale.language == preferredLanguage }
                     ?: available.firstOrNull { !it.isNetworkConnectionRequired }
                 if (voice != null) {
-                    tts?.voice = voice
+                    engine.voice = voice
                     offlineVoiceReady = true
                 } else {
                     offlineVoiceReady = false
@@ -255,7 +256,11 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
             override fun onRmsChanged(rmsdB: Float) = Unit
             override fun onBufferReceived(buffer: ByteArray?) = Unit
             override fun onEndOfSpeech() { status = "Recognising speech offline…" }
-            override fun onError(error: Int) { status = "Offline voice recognition failed (code $error). You can type instead." }
+            override fun onError(error: Int) {
+                status = "Offline voice recognition failed (code $error). You can type instead."
+                recognizer.destroy()
+                speechRecognizer = null
+            }
             override fun onResults(results: android.os.Bundle?) {
                 val spoken = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
                 if (spoken.isNotBlank()) input = spoken
