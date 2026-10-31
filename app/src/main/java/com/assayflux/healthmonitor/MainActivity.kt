@@ -187,6 +187,8 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
      item{SectionTitle("RECENT VITALS")}
      items(vitals.take(4)){r->RecordCard("${r[1]} · ${r[2]}","BP ${r[3]}/${r[4]} mmHg   Pulse ${r[5]} bpm   SpO₂ ${r[7]}%")}
     }
+    "Records"->NavigationHubScreen("Health records","Choose a section to view or update family health records.",listOf("People" to Icons.Default.Groups,"Vitals" to Icons.Default.MonitorHeart,"Reports" to Icons.Default.Description,"Medicines" to Icons.Default.Medication,"History" to Icons.Default.History,"Tests" to Icons.Default.Science)){tab=it}
+    "More"->NavigationHubScreen("More features","Transfers, reminders, interoperability and privacy settings.",listOf("Reminders" to Icons.Default.Notifications,"Interop" to Icons.Default.SyncAlt,"Received & Shared" to Icons.Default.Devices,"Privacy" to Icons.Default.Security,"Settings" to Icons.Default.Settings)){tab=it}
     "Assistant"->OfflineAssistantScreen(db,refresh)
     "People"->MemberManagementScreen(db,refresh,{refresh++}){dialog="person"}
     "Vitals"->LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){item{ButtonRow("Record new vitals"){dialog="vitals"}};items(vitals){r->RecordCard("${r[1]} · ${r[2]}","BP ${r[3]}/${r[4]} · Pulse ${r[5]} · Weight ${r[6]} kg · SpO₂ ${r[7]}%")}}
@@ -195,10 +197,11 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
     "Analytics"->if(PrivacyAudit.granted(db, "local_analytics")) AnalyticsDashboard(db,refresh) else Column(Modifier.fillMaxSize().padding(24.dp),verticalArrangement=Arrangement.Center){Text("Local analytics is disabled",color=Ink,fontSize=22.sp);Text("Enable local analytics in the Privacy tab to view summaries. No data leaves this device.",color=Ink.copy(.7f))}
     "Reminders"->ReminderManagementScreen(db,refresh){refresh++}
     "History"->HealthHistoryScreen(db,refresh){refresh++}
+    "Tests"->ClinicalTestScreen(db,refresh){refresh++}
     "Interop"->InteroperabilityScreen(db,refresh){refresh++}
     "Received & Shared"->ReceivedSharedScreen(db,refresh){refresh++}
     "Privacy"->PrivacyControlsScreen(db,refresh){refresh++}
-    else->Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+    "Settings"->Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
      Text("Settings & privacy",fontSize=23.sp,fontWeight=FontWeight.SemiBold)
      SectionTitle("VINTAGE COLOUR PALETTE")
      Text("Choose a heritage colour story. Your selection updates the app immediately.",color=Ink.copy(.7f),fontSize=13.sp)
@@ -216,6 +219,7 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
      RecordCard("Calculation engine","Python 3.11 embedded with Chaquopy.")
      RecordCard("Clinical note","Reference ranges are informational and do not provide a diagnosis. Follow the reporting laboratory's interval and clinician guidance.")
     }
+    else->Text("Section unavailable",color=Ink,modifier=Modifier.padding(24.dp))
    }
   }
  }
