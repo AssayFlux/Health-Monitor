@@ -349,7 +349,7 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
             Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 Text("LOCAL MODEL", color = Forest, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                 Text(if (modelFile == null) "No model imported" else modelName, color = Ink, fontWeight = FontWeight.SemiBold)
-                Text("Recommended: Qwen 3.5 4B Q4 GGUF on phones with 8 GB+ RAM. For lower-memory devices, use a 0.8B–2B quantized GGUF. Model files are not bundled in the APK.", color = Ink.copy(alpha = .72f), fontSize = 11.sp)
+                Text("Recommended: Qwen3.5-4B-Q4_K_M.gguf (about 2.78 GB) on phones with 8 GB+ RAM. For lower-memory devices, use a 0.8B–2B quantized GGUF. Model files are not bundled in the APK.", color = Ink.copy(alpha = .72f), fontSize = 11.sp)
                 TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://huggingface.co/Boollm/Qwen3.5-4B-GGUF"))) }) { Text("Get Qwen 3.5 GGUF model") }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { importModel.launch(arrayOf("application/octet-stream", "application/x-gguf", "*/*")) }, enabled = !loadingModel && !generating) {
