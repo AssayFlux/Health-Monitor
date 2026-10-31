@@ -79,7 +79,7 @@ fun InteroperabilityScreen(db: HealthDb, refreshToken: Int, onChanged: () -> Uni
         if (granted.containsAll(HealthConnectBridge.readPermissions)) {
             scope.launch {
                 try {
-                    val count = withContext(Dispatchers.IO) { HealthConnectBridge.syncRecent(db, context) }
+                    val count = withContext(Dispatchers.IO) { HealthConnectBridge.syncRecent(db, context, selectedMember.toLong()) }
                     message = "Health Connect sync complete: ${count} new observation(s) from the last 30 days. Source provenance retained."
                     onChanged()
                 } catch (e: Exception) { message = "Health Connect sync failed: ${e.message}" }
