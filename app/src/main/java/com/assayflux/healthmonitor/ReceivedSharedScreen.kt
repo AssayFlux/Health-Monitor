@@ -46,6 +46,20 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
  var status by remember{mutableStateOf("")};var busy by remember{mutableStateOf(false)}
  var deleteId by remember{mutableStateOf<String?>(null)}
  DisposableEffect(server){onDispose{try{server?.stop()}catch(_:Exception){}}}
+ LaunchedEffect(db) {
+  withContext(Dispatchers.IO) { db.pendingTransfer() }?.let { saved ->
+   try {
+    val restored=DeviceTransfer.validate(JSONObject(saved.second))
+    pendingHistoryId=saved.first
+    pending=restored
+    status="A previously received transfer is ready for review."
+   } catch(e:Exception) {
+    db.discardPendingTransfer(saved.first)
+    db.updateTransferStatus(saved.first,"Invalid","Saved transfer could not be validated")
+    status="A saved pending transfer was invalid and has been discarded."
+   }
+  }
+ }
  val scanner=rememberLauncherForActivityResult(ScanContract()){ result->
   if(!result.contents.isNullOrBlank()) try {
    val data=JSONObject(result.contents);url=data.getString("url");token=data.getString("token");receiverId=data.optString("receiver","paired-receiver");receiverName=data.optString("receiverName","Receiving device")
@@ -64,7 +78,7 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
    Button(onClick={
     try{
      server?.stop();val key=DeviceTransfer.token()
-     val s=DeviceTransfer.Server(key){item->scope.launch(Dispatchers.Main){pending=item;pendingHistoryId=db.recordTransfer("Received",item.senderId,item.senderName,"Awaiting review",item.count,"Received; awaiting your confirmation");onChanged();status="Transfer received. Review it below."}}
+     val s=DeviceTransfer.Server(key){item->scope.launch(Dispatchers.IO){val historyId=db.recordTransfer("Received",item.senderId,item.senderName,"Awaiting review",item.count,"Received; awaiting your confirmation");db.savePendingTransfer(historyId,item.json.toString());withContext(Dispatchers.Main){pending=item;pendingHistoryId=historyId;onChanged();status="Transfer received. Review it below."}}}
      s.start();server=s
      val address="http://"+DeviceTransfer.ip()+":"+s.listeningPort+"/transfer"
      qr=DeviceTransfer.qrBitmap(JSONObject().put("url",address).put("token",key).put("receiver",deviceId).put("receiverName",android.os.Build.MODEL?:"Android device").toString())
@@ -105,7 +119,7 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
     Text("Records: "+p.count,color=Ink,fontSize=12.sp)
     Text("Integrate creates a new member profile; it does not alter existing profiles.",color=Ink,fontSize=12.sp)
     Button(onClick={confirm=true},modifier=Modifier.fillMaxWidth()){Text("Integrate as new member")}
-    TextButton(onClick={db.updateTransferStatus(pendingHistoryId,"Discarded","Transfer discarded before import");pending=null;pendingHistoryId="";status="Transfer discarded; nothing imported.";onChanged()}){Text("Discard")}
+    TextButton(onClick={db.updateTransferStatus(pendingHistoryId,"Discarded","Transfer discarded before import");db.discardPendingTransfer(pendingHistoryId);pending=null;pendingHistoryId="";status="Transfer discarded; nothing imported.";onChanged()}){Text("Discard")}
    }
   }}
   if(status.isNotBlank())Text(status,color=Forest,fontSize=12.sp)
