@@ -185,6 +185,7 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
     "Reminders"->ReminderManagementScreen(db,refresh){refresh++}
     "History"->HealthHistoryScreen(db,refresh){refresh++}
     "Interop"->InteroperabilityScreen(db,refresh){refresh++}
+    "Received & Shared"->ReceivedSharedScreen(db,refresh){refresh++}
     "Privacy"->PrivacyControlsScreen(db,refresh){refresh++}
     else->Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
      Text("Settings & privacy",fontSize=23.sp,fontWeight=FontWeight.SemiBold)
