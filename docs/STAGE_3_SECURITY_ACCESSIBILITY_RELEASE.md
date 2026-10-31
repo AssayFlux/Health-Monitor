@@ -10,7 +10,7 @@ Status: implementation foundations committed; release verification remains outst
 - App foreground loss clears the in-memory passphrase and removes the authenticated UI; the database helper is closed when the authenticated host leaves composition.
 - Progressive password-attempt throttling remains in place. Key unwrap and SQLCipher open failures fail closed; the app does not silently create a replacement database key.
 - Encrypted local consent records cover Health Connect reads, document OCR, FHIR exchange and local analytics. FHIR, OCR and Health Connect entry points are disabled until the corresponding consent is granted.
-- Encrypted application audit events record database unlock, consent changes, biometric enrollment/disable and selected interoperability actions. The UI labels this as an application audit trail, not a tamper-proof forensic log.
+- Encrypted application audit events record database unlock, consent changes, biometric enrollment/disable, and create/update/delete operations on core clinical tables through SQLite triggers. The UI labels this as an application audit trail, not a tamper-proof forensic log.
 - FLAG_SECURE is applied to activities. Android cloud backup and device-to-device extraction remain disabled. Notification content is generic.
 - Appearance palette choice is persisted locally.
 - Backup/recovery/sharing remain intentionally unavailable. The former transfer implementation is not restored.
