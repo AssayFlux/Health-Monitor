@@ -82,24 +82,4 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           emulator-boot-timeout: 900
           disable-animations: true
-          script: |
-            # The emulator runner executes this script through /bin/sh.
-            # Keep it POSIX-compatible: pipefail is a Bash-only option.
-            set -eu
-            adb start-server
-            adb wait-for-device
-            for attempt in $(seq 1 120); do
-              state="$(adb get-state 2>/dev/null || true)"
-              booted="$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
-              if [ "$state" = "device" ] && [ "$booted" = "1" ]; then
-                break
-              fi
-              if [ "$attempt" -eq 120 ]; then
-                echo "Emulator did not become ready (state=$state, boot_completed=$booted)"
-                adb devices -l || true
-                exit 1
-              fi
-              sleep 5
-            done
-            adb devices -l
-            gradle :app:connectedDebugAndroidTest --no-daemon
+          script: gradle :app:connectedDebugAndroidTest --no-daemon
