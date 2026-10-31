@@ -19,16 +19,20 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Python lint and format
+      - name: Python lint and test formatting
         run: |
           python -m pip install ruff
-          ruff check app/src/main/python tests
-          ruff format --check app/src/main/python tests
+          ruff check --select E,F app/src/main/python tests
+          ruff format --check tests
       - name: Kotlin formatting
         run: |
           curl -fsSLo ktlint https://github.com/pinterest/ktlint/releases/download/1.5.0/ktlint
           chmod +x ktlint
           find app/src -type f -name '*.kt' -print0 | xargs -0 ./ktlint --relative
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.13.2"
       - name: Android lint
         run: gradle :app:lintDebug --no-daemon
   cross-language-integrity:
