@@ -169,7 +169,7 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
     "People"->LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){item{ButtonRow("Add family member"){dialog="person"}};items(members){m->RecordCard(m[1],listOf(m[2],m[3]).filter{it.isNotBlank()}.joinToString(" · ").ifBlank{"Family profile"} )}}
     "Vitals"->LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){item{ButtonRow("Record new vitals"){dialog="vitals"}};items(vitals){r->RecordCard("${r[1]} · ${r[2]}","BP ${r[3]}/${r[4]} · Pulse ${r[5]} · Weight ${r[6]} kg · SpO₂ ${r[7]}%")}}
     "Reports"->LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){item{ButtonRow("Add laboratory report"){dialog="lab"}};items(labs){r->RecordCard("${r[1]} · ${r[2]}",r[3])};item{SectionTitle("MEDICINES")};item{ButtonRow("Add medicine"){dialog="medicine"}};items(meds){r->RecordCard("${r[2]} · ${r[1]}","${r[3]} · Started ${r[4]}")}}
-    "Analytics"->AnalyticsDashboard(db,refresh)
+    "Analytics"->if(PrivacyAudit.granted(db, "local_analytics")) AnalyticsDashboard(db,refresh) else Column(Modifier.fillMaxSize().padding(24.dp),verticalArrangement=Arrangement.Center){Text("Local analytics is disabled",color=Ink,fontSize=22.sp);Text("Enable local analytics in the Privacy tab to view summaries. No data leaves this device.",color=Ink.copy(.7f))}
     "Reminders"->ReminderManagementScreen(db,refresh){refresh++}
     "History"->HealthHistoryScreen(db,refresh){refresh++}
     "Interop"->InteroperabilityScreen(db,refresh){refresh++}
