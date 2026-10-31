@@ -58,6 +58,7 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
   }}
   Text("OFFLINE DEVICE TRANSFER",color=Forest,fontSize=11.sp)
   Text("Connect both phones to the same Wi-Fi or hotspot. Data travels directly over the local network, without cloud storage.",color=Ink.copy(.7f),fontSize=12.sp)
+  Text("Transfer data is not encrypted. Use a trusted private Wi-Fi or hotspot; devices on the same network may be able to read the traffic.",color=Clay,fontSize=12.sp)
   Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
    Button(onClick={
     try{
