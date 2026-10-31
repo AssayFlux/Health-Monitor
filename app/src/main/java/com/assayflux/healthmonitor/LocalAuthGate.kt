@@ -13,6 +13,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.fragment.app.FragmentActivity
 import android.widget.Toast
 import javax.crypto.Cipher
@@ -139,8 +142,19 @@ fun LocalAuthGate(content: @Composable (ByteArray) -> Unit) {
         } catch (e: Exception) { error = "Biometric enrollment unavailable: ${e.message}" }
     }
 
-    DisposableEffect(Unit) {
-        onDispose { unlockedKey?.fill(0) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                unlockedKey?.fill(0)
+                unlockedKey = null
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            unlockedKey?.fill(0)
+        }
     }
 
     val key = unlockedKey
