@@ -87,7 +87,11 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
     if(pending!=null){status="Integrate or discard the current received transfer before receiving another."}
     else try{
      server?.stop();val key=DeviceTransfer.token()
-     val s=DeviceTransfer.Server(key){item->scope.launch(Dispatchers.IO){val historyId=db.recordTransfer("Received",item.senderId,item.senderName,"Awaiting review",item.count,"Received; awaiting your confirmation");db.savePendingTransfer(historyId,item.json.toString());withContext(Dispatchers.Main){pending=item;pendingHistoryId=historyId;onChanged();status="Transfer received. Review it below."}}}
+     val s=DeviceTransfer.Server(key){item->
+      val historyId=db.recordTransfer("Received",item.senderId,item.senderName,"Awaiting review",item.count,"Received; awaiting your confirmation")
+      db.savePendingTransfer(historyId,item.json.toString())
+      scope.launch(Dispatchers.Main){pending=item;pendingHistoryId=historyId;onChanged();status="Transfer received. Review it below."}
+     }
      s.start();server=s
      val address="http://"+DeviceTransfer.ip()+":"+s.listeningPort+"/transfer"
      qr=DeviceTransfer.qrBitmap(JSONObject().put("url",address).put("token",key).put("receiver",deviceId).put("receiverName",android.os.Build.MODEL?:"Android device").toString())
@@ -143,7 +147,7 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
  }
  if(confirm)AlertDialog(onDismissRequest={confirm=false},title={Text("Integrate as a separate member?")},
   text={Text("This imports the received records into a new profile and does not overwrite or merge existing members. Transfer payload is plain local-network data, as requested.")},
-  confirmButton={TextButton(onClick={try{val item=pending ?: error("No pending transfer to integrate.");DeviceTransfer.integrate(db,item,pendingHistoryId);pending=null;pendingHistoryId="";confirm=false;status="Imported as a separate member profile.";onChanged()}catch(e:Exception){confirm=false;status="Import failed: "+(e.message?:"database error")}}){Text("Integrate")}},
+  confirmButton={TextButton(onClick={scope.launch{try{val item=pending ?: error("No pending transfer to integrate.");val historyId=pendingHistoryId;withContext(Dispatchers.IO){DeviceTransfer.integrate(db,item,historyId)};pending=null;pendingHistoryId="";confirm=false;status="Imported as a separate member profile.";onChanged()}catch(e:Exception){confirm=false;status="Import failed: "+(e.message?:"database error")}}}){Text("Integrate")}},
   dismissButton={TextButton(onClick={confirm=false}){Text("Cancel")}})
  deleteId?.let{id->AlertDialog(onDismissRequest={deleteId=null},title={Text("Delete history entry?")},text={Text("Only history is deleted; imported health data remains.")},confirmButton={TextButton(onClick={db.deleteTransfer(id);db.discardPendingTransfer(id);if(pendingHistoryId==id){pending=null;pendingHistoryId=""};deleteId=null;onChanged()}){Text("Delete")}},dismissButton={TextButton(onClick={deleteId=null}){Text("Cancel")}})}
 }
