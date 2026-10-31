@@ -7,7 +7,6 @@ import observation_engine
 
 
 class SecurityRegressionTests(unittest.TestCase):
-
     def test_assistant_voice_path_is_strictly_on_device(self):
         root = Path(__file__).resolve().parents[2]
         source = (
