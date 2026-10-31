@@ -99,7 +99,7 @@ tests/                                           # Python regression tests
 
 ## Privacy and responsible use
 
-The project follows an offline-first approach. The current codebase includes SQLCipher-backed storage, Keystore-wrapped database-key foundations and local authentication components. Legacy plaintext-to-encrypted database migration has been removed; a QR-paired device-to-device transfer and restore flow is planned but is not implemented yet.
+The project follows an offline-first approach. The current codebase includes SQLCipher-backed storage, Keystore-wrapped database-key foundations and local authentication components. Legacy plaintext-to-encrypted database migration has been removed; QR-paired offline transfer is now implemented over a shared Wi-Fi/hotspot network. Payloads are sent as plain local HTTP with a short-lived one-time pairing token; local SQLCipher database encryption remains enabled. Received records are reviewed and imported as a separate member profile.
 
 These foundations do not yet constitute a complete security or recovery workflow. Biometric-to-database-key integration, backup/recovery design, broader device validation and independent security review remain outstanding. Do not store sensitive real-world patient information in pre-release builds.
 
