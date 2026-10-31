@@ -26,7 +26,7 @@ object HealthConnectBridge {
 
     fun permissionContract() = PermissionController.createRequestPermissionResultContract()
 
-    suspend fun syncRecent(db: HealthDb, context: Context): Int {
+    suspend fun syncRecent(db: HealthDb, context: Context, memberId: Long): Int {
         val client = HealthConnectClient.getOrCreate(context)
         val granted = client.permissionController.getGrantedPermissions()
         require(granted.containsAll(readPermissions)) { "Grant Health Connect read access before syncing." }
@@ -36,29 +36,27 @@ object HealthConnectBridge {
         heart.records.forEach { record ->
             record.samples.forEachIndexed { index, sample ->
                 val source = "health-connect:heart-rate:${record.metadata.id}:$index"
-                saved += insertObservation(db, source, record.startTime.toString(), "Heart rate",
+                saved += insertObservation(db, memberId, source, record.startTime.toString(), "Heart rate",
                     sample.beatsPerMinute.toDouble(), "/min", "http://loinc.org", "8867-4")
             }
         }
         val weights = client.readRecords(ReadRecordsRequest(WeightRecord::class, timeRangeFilter = TimeRangeFilter.after(since)))
         weights.records.forEach { record ->
-            saved += insertObservation(db, "health-connect:weight:${record.metadata.id}",
+            saved += insertObservation(db, memberId, "health-connect:weight:${record.metadata.id}",
                 record.time.toString(), "Body weight", record.weight.inKilograms, "kg",
                 "http://loinc.org", "29463-7")
         }
         val steps = client.readRecords(ReadRecordsRequest(StepsRecord::class, timeRangeFilter = TimeRangeFilter.after(since)))
         steps.records.forEach { record ->
-            saved += insertObservation(db, "health-connect:steps:${record.metadata.id}",
+            saved += insertObservation(db, memberId, "health-connect:steps:${record.metadata.id}",
                 record.startTime.toString(), "Step count", record.count.toDouble(), "{steps}",
                 "http://loinc.org", "55423-8")
         }
         return saved
     }
 
-    private fun insertObservation(db: HealthDb, source: String, time: String, display: String,
+    private fun insertObservation(db: HealthDb, memberId: Long, source: String, time: String, display: String,
         value: Double, unit: String, system: String, code: String): Int {
-        val memberId = db.members().firstOrNull()?.get(0)?.toLongOrNull()
-            ?: throw IllegalStateException("Add a family member before syncing Health Connect data.")
         val values = ContentValues().apply {
             put("logical_id", UUID.nameUUIDFromBytes(source.toByteArray()).toString())
             put("member_id", memberId); put("resource_type", "Observation")
