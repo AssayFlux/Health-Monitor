@@ -48,9 +48,7 @@ class EngineContractTests(unittest.TestCase):
 
     def test_observation_normalization_rejects_invalid_enum(self):
         with self.assertRaises(ValueError):
-            observation_engine.normalize_observation(
-                {"result_kind": "unknown-kind"}
-            )
+            observation_engine.normalize_observation({"result_kind": "unknown-kind"})
 
     def test_observation_json_round_trip(self):
         payload = observation_engine.normalize_observation_json(
