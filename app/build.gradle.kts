@@ -37,6 +37,7 @@ dependencies {
     implementation("androidx.sqlite:sqlite:2.7.0")
     implementation("androidx.health.connect:connect-client:1.1.0")
     implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
