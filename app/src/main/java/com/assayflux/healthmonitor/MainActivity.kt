@@ -111,12 +111,11 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
   try {
    val opened=withContext(Dispatchers.IO) {
     try {
-     EncryptedDatabaseMigration.migrateIfNeeded(context,passphrase)
      HealthDb(context,passphrase).also { ClinicalInteroperability.ensureSchema(it); PrivacyAudit.record(it, "database_unlocked", outcome = "authenticated") }
     } finally { passphrase.fill(0) }
    }
    db=opened
-  } catch(e:Exception) { error=e.message ?: "Database migration failed." }
+  } catch(e:Exception) { error=e.message ?: "Database unlock failed." }
  }
  if(db!=null) {
   HealthApp(db!!)
