@@ -182,7 +182,7 @@ Before treating a build as release-ready, verify at minimum:
 1. Gradle build and unit tests.
 2. Migration from a populated legacy database, including rollback/failure scenarios.
 3. SQLCipher key lifecycle and authentication behavior.
-4. Backup decryption, malformed archive rejection, duplicate handling, and transactional restore.
+4. Confirm that no backup, import, export, or sharing entry point remains in this build; validate that local database encryption and local authentication still work.
 5. Notifications and file import/export on supported Android versions.
 6. Biometric enrollment, cancellation, lockout, and password fallback on physical devices.
 
