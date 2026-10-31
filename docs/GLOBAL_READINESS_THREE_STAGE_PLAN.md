@@ -38,3 +38,10 @@ This plan is an engineering roadmap, not a claim of certification or clinical va
 - The application remains a personal health record and informational tool unless clinical validation, regulatory assessment, and operational controls justify a different claim.
 - No diagnosis, treatment recommendation, autonomous medication change, or unvalidated risk score is included.
 - HIPAA, GDPR, India's DPDP framework, and other laws have different scopes and triggers. No feature checklist automatically makes the app compliant.
+
+
+## Stage 2 implementation status (2026-10-31)
+
+The Stage 2 code foundation is now present in the application: a versioned normalized clinical projection, legacy-row projection with provenance labels, FHIR R4 collection Bundle export, staged FHIR import with base mandatory-element checks and explicit member confirmation, LOINC/SNOMED CT/UCUM/ICD system identifiers and common UCUM unit normalization, Health Connect read integration for heart rate/steps/weight, and image OCR with a manual-review state. See [Stage 2 interoperability notes](STAGE_2_INTEROPERABILITY.md) for boundaries.
+
+Stage 2 is **implemented but not release-verified**. A jurisdiction-specific implementation guide has not been selected, no terminology distribution is bundled, not all local analytes are mapped to coded numeric Observations, document OCR currently accepts images rather than PDFs, and no build/tests/device validation have been run at the user's request. Do not describe this as certified FHIR conformance or completed clinical interoperability.
