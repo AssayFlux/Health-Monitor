@@ -136,6 +136,15 @@ object DeviceTransfer {
         } finally { sql.endTransaction() }
     }
 
+
+    fun qrBitmap(text: String): android.graphics.Bitmap {
+        val matrix=com.google.zxing.MultiFormatWriter().encode(text,com.google.zxing.BarcodeFormat.QR_CODE,640,640)
+        return android.graphics.Bitmap.createBitmap(640,640,android.graphics.Bitmap.Config.ARGB_8888).also { b ->
+            for(x in 0 until 640) for(y in 0 until 640)
+                b.setPixel(x,y,if(matrix[x,y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+        }
+    }
+
     class Server(token: String, private val onReceive:(Pending)->Unit): NanoHTTPD("0.0.0.0",0) {
         private val key=token
         @Volatile private var used=false
