@@ -6,12 +6,15 @@ Health Monitor is not approved for real patient records until every gate below i
 
 - SQLCipher is present in the Android dependency graph and the application calls `System.loadLibrary("sqlcipher")`. This confirms integration intent, not a verified encrypted-database release.
 - The plaintext migration currently validates integrity and row counts for a fixed list of tables. It does not yet prove full schema/index/trigger/foreign-key preservation, WAL/SHM cleanup under interruption, or recovery across every crash point.
-- The Android Keystore envelope protects the database passphrase from direct preference-file disclosure, but its wrapping key is created with `setUserAuthenticationRequired(false)`. It is therefore not biometric-gated.
-- The login composable is rendered after the database has already been opened. Password entry currently does not gate release of the SQLCipher key.
+- The database passphrase is now released to the database host only after local password verification or a successful strong-biometric `BiometricPrompt` CryptoObject operation. The biometric envelope is protected by a per-use Android Keystore key; password-wrapped key recovery remains available.
+- The authenticated UI is removed and the database helper closed when the activity leaves the foreground. This lifecycle behaviour still requires real-device verification, especially around system permission dialogs and biometric prompts.
 - The earlier SecureTransfer helper and its tests have been removed. Backup, recovery, and sharing are intentionally deferred for a separate redesign.
 - Reminder UI accepts a free-form identifier and interval. It is not persisted against a medicine/appointment record and is not a dose schedule.
 - Analytics currently plots vital-sign trends only. Laboratory and anthropometric rows are counted but not analyzed as unit-/analyte-specific series.
 - CI run for commit `d229dc7b15d50fc85ac31d9f3f606bfc5c7fd871` failed in both build-and-unit-test and instrumentation jobs. Unit tests were skipped after APK assembly failed.
+
+- Privacy settings now persist local consent decisions for Health Connect, OCR, FHIR exchange and local analytics; selected access/security events are recorded in an encrypted application audit table. This is not a tamper-proof forensic audit log.
+- The app exposes a privacy/security screen, persists the selected vintage palette, applies `FLAG_SECURE`, and continues to exclude app data from cloud backup/device transfer.
 
 ## Mandatory release gates
 
@@ -30,3 +33,8 @@ Health Monitor is not approved for real patient records until every gate below i
 - Do not put patient names, medicine names, diagnoses, or measurements in CI logs, crash reports, notification text, or test fixtures.
 - A green CI build is necessary but not sufficient for clinical reliability. This app is a personal recordkeeping tool, not a diagnostic or emergency-care system.
 - Do not use the app for real patient records until the gates above are completed and independently reviewed.
+
+
+## Stage 3 implementation notes
+
+See [Stage 3 security, accessibility and release readiness](STAGE_3_SECURITY_ACCESSIBILITY_RELEASE.md) for the biometric key-release design, consent/audit controls, future backup threat model, MASVS review map, and remaining release evidence. Stage 3 implementation is not release-verified; no build, test suite, device review, independent security audit or legal review has been performed for this change set.
