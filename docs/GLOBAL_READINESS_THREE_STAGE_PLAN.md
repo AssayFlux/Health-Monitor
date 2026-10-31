@@ -45,3 +45,10 @@ This plan is an engineering roadmap, not a claim of certification or clinical va
 The Stage 2 code foundation is now present in the application: a versioned normalized clinical projection, legacy-row projection with provenance labels, FHIR R4 collection Bundle export, staged FHIR import with base mandatory-element checks and explicit member confirmation, LOINC/SNOMED CT/UCUM/ICD system identifiers and common UCUM unit normalization, Health Connect read integration for heart rate/steps/weight, and image OCR with a manual-review state. See [Stage 2 interoperability notes](STAGE_2_INTEROPERABILITY.md) for boundaries.
 
 Stage 2 is **implemented but not release-verified**. A jurisdiction-specific implementation guide has not been selected, no terminology distribution is bundled, not all local analytes are mapped to coded numeric Observations, document OCR currently accepts images rather than PDFs, and no build/tests/device validation have been run at the user's request. Do not describe this as certified FHIR conformance or completed clinical interoperability.
+
+
+## Stage 3 implementation status (2026-10-31)
+
+Stage 3 implementation foundations have been committed: password/strong-biometric authentication now precedes SQLCipher opening; biometric CryptoObject key wrapping and password fallback are wired; foreground loss clears the in-memory key and closes the authenticated database host; consent controls and encrypted application audit records are present; backup/device transfer remain disabled; screenshot/notification safeguards and persistent appearance selection remain in place. See [Stage 3 security, accessibility and release readiness](STAGE_3_SECURITY_ACCESSIBILITY_RELEASE.md).
+
+Stage 3 is **implemented but not release-verified**. Full TalkBack/large-text/keyboard/localisation review, device testing of lifecycle and biometric invalidation, complete audit coverage, MASVS assessment, independent security review and jurisdiction-specific legal/privacy assessment remain outstanding. No certification or compliance claim is made.
