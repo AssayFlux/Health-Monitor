@@ -41,13 +41,13 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
  var qr by remember{mutableStateOf<android.graphics.Bitmap?>(null)}
  var pending by remember{mutableStateOf<DeviceTransfer.Pending?>(null)}
  var confirm by remember{mutableStateOf(false)}
- var url by remember{mutableStateOf("")};var token by remember{mutableStateOf("")}
+ var url by remember{mutableStateOf("")};var token by remember{mutableStateOf("")};var receiverId by remember{mutableStateOf("paired-receiver")}
  var status by remember{mutableStateOf("")};var busy by remember{mutableStateOf(false)}
  var deleteId by remember{mutableStateOf<String?>(null)}
  DisposableEffect(server){onDispose{try{server?.stop()}catch(_:Exception){}}}
  val scanner=rememberLauncherForActivityResult(ScanContract()){ result->
   if(!result.contents.isNullOrBlank()) try {
-   val data=JSONObject(result.contents);url=data.getString("url");token=data.getString("token")
+   val data=JSONObject(result.contents);url=data.getString("url");token=data.getString("token");receiverId=data.optString("receiver","paired-receiver")
    status="Paired with receiver. Choose a member to send."
   } catch(_:Exception){status="Invalid Health Monitor QR code."}
  }
@@ -89,7 +89,7 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
      scope.launch{try{
       val data=withContext(Dispatchers.IO){DeviceTransfer.export(db,selected.toLong(),deviceId,android.os.Build.MODEL?:"Android")}
       withContext(Dispatchers.IO){DeviceTransfer.send(url,token,data)}
-      db.recordTransfer("Shared","paired-receiver","Receiving device","Sent",data.optInt("count"),"Member: "+data.getJSONObject("member").optString("name"))
+      db.recordTransfer("Shared",receiverId,"Receiving device","Sent",data.optInt("count"),"Member: "+data.getJSONObject("member").optString("name"))
       status="Sent. The receiving phone must confirm integration.";url="";token="";onChanged()
      }catch(e:Exception){status=e.message?:"Transfer failed."}finally{busy=false}}
     },modifier=Modifier.fillMaxWidth()){Text(if(busy)"Sending…" else "Send selected member")}
