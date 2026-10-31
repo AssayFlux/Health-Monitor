@@ -172,7 +172,7 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
    Toast.makeText(context,"PDF exported",Toast.LENGTH_LONG).show()
   }catch(e:Exception){Toast.makeText(context,"PDF export failed: ${e.message}",Toast.LENGTH_LONG).show()}}
  }
- Scaffold(containerColor=Ivory,floatingActionButton={ExtendedFloatingActionButton(onClick={pdfLauncher.launch("Health-Monitor-Report.pdf")},text={Text("Export PDF")},icon={Icon(Icons.Default.PictureAsPdf,null)})},bottomBar={NavigationBar(containerColor=Cream){listOf("Home","Assistant","People","Vitals","Reports","Medicines","Analytics","Reminders","History","Tests","Interop","Received & Shared","Privacy","More").forEach{t->NavigationBarItem(selected=tab==t,onClick={tab=t},icon={Icon(when(t){"Home"->Icons.Default.Home;"Assistant"->Icons.Default.SmartToy;"People"->Icons.Default.Groups;"Vitals"->Icons.Default.MonitorHeart;"Reports"->Icons.Default.Description;"Analytics"->Icons.Default.Analytics;"Reminders"->Icons.Default.Notifications;"History"->Icons.Default.History;"Interop"->Icons.Default.SyncAlt;"Privacy"->Icons.Default.Security;"Tests"->Icons.Default.Science;"Medicines"->Icons.Default.Medication;"Received & Shared"->Icons.Default.Devices;else->Icons.Default.MoreHoriz},null)},label={Text(t)})}}}){p->
+ Scaffold(containerColor=Ivory,floatingActionButton={ExtendedFloatingActionButton(onClick={pdfLauncher.launch("Health-Monitor-Report.pdf")},text={Text("Export PDF")},icon={Icon(Icons.Default.PictureAsPdf,null)})},bottomBar={NavigationBar(containerColor=Cream){listOf("Home","Records","Assistant","Analytics","More").forEach{t->val selected=when(t){"Records"->tab in setOf("Records","People","Vitals","Reports","Medicines","History","Tests");"More"->tab in setOf("More","Reminders","Interop","Received & Shared","Privacy","Settings");else->tab==t};NavigationBarItem(selected=selected,onClick={tab=t},icon={Icon(when(t){"Home"->Icons.Default.Home;"Records"->Icons.Default.FolderOpen;"Assistant"->Icons.Default.SmartToy;"Analytics"->Icons.Default.Analytics;else->Icons.Default.MoreHoriz},null)},label={Text(t)})}}}){p->
   Column(Modifier.fillMaxSize().padding(p)){
    Row(Modifier.fillMaxWidth().padding(horizontal=20.dp, vertical=14.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text("HEALTH MONITOR",fontSize=11.sp,letterSpacing=2.sp,color=Forest,fontWeight=FontWeight.Bold);Text(tab,fontSize=27.sp,color=Ink,fontWeight=FontWeight.SemiBold)};Surface(color=Forest,shape=RoundedCornerShape(50)){Icon(Icons.Default.Favorite, null,tint=Color.White,modifier=Modifier.padding(11.dp).size(20.dp))}}
    when(tab){
@@ -224,6 +224,44 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
  "medicine"->MedicineDialog(members,{dialog=""},{mid,n,d,s,e,no->db.addMedicine(mid,n,d,s,e,no);refresh++})
  "anthropometry"->AnthropometryDialog(members,{dialog=""},{mid,date,json->db.addAnthropometry(mid,date,json);refresh++})}
 }
+
+@Composable
+private fun NavigationHubScreen(
+    title: String,
+    description: String,
+    entries: List<Pair<String, androidx.compose.ui.graphics.vector.ImageVector>>,
+    onNavigate: (String) -> Unit
+) {
+    LazyColumn(
+        Modifier.fillMaxSize().padding(horizontal = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        item {
+            Text(description, color = Ink.copy(alpha = .68f), fontSize = 13.sp,
+                modifier = Modifier.padding(bottom = 4.dp))
+        }
+        items(entries) { (label, icon) ->
+            Card(
+                modifier = Modifier.fillMaxWidth().clickable { onNavigate(label) },
+                colors = CardDefaults.cardColors(containerColor = Cream),
+                shape = RoundedCornerShape(18.dp)
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 17.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Icon(icon, contentDescription = null, tint = Forest)
+                    Text(label, color = Ink, fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f))
+                    Icon(Icons.Default.ChevronRight, contentDescription = null,
+                        tint = Ink.copy(alpha = .5f))
+                }
+            }
+        }
+    }
+}
+
 @Composable private fun MetricCard(label:String,value:String,modifier:Modifier=Modifier){Card(modifier,colors=CardDefaults.cardColors(containerColor=Cream),shape=RoundedCornerShape(18.dp)){Column(Modifier.padding(15.dp)){Text(value,fontSize=24.sp,color=Forest,fontWeight=FontWeight.SemiBold);Text(label,color=Ink.copy(.65f),fontSize=12.sp)}}}
 @Composable private fun ActionTile(label:String,icon:androidx.compose.ui.graphics.vector.ImageVector,modifier:Modifier=Modifier,onClick:()->Unit){Card(modifier.clickable{onClick()},colors=CardDefaults.cardColors(containerColor=Cream),shape=RoundedCornerShape(18.dp)){Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Icon(icon,null,tint=Forest);Text(label,color=Ink,fontWeight=FontWeight.SemiBold)}}}
 @Composable private fun SectionTitle(s:String){Text(s,color=Forest,fontSize=11.sp,fontWeight=FontWeight.Bold,letterSpacing=1.4.sp)}
