@@ -8,7 +8,11 @@
     <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
     <uses-permission android:name="android.permission.health.READ_STEPS" />
     <uses-permission android:name="android.permission.health.READ_WEIGHT" />
-    <queries><package android:name="com.google.android.apps.healthdata" /></queries>
+    <queries>
+        <package android:name="com.google.android.apps.healthdata" />
+        <intent><action android:name="android.speech.RecognitionService" /></intent>
+        <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>
+    </queries>
  <application
   android:name=".HealthMonitorApplication"
   android:theme="@android:style/Theme.Material.Light.NoActionBar"
