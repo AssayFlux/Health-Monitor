@@ -21,17 +21,23 @@ object DeviceTransfer {
         .let { Base64.encodeToString(it, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING) }
 
     fun ip(): String {
-        val nets = NetworkInterface.getNetworkInterfaces()
-        while (nets.hasMoreElements()) {
-            val net = nets.nextElement()
-            if (!net.isUp || net.isLoopback) continue
-            val addrs = net.inetAddresses
-            while (addrs.hasMoreElements()) {
-                val a = addrs.nextElement()
-                if (a is java.net.Inet4Address && !a.isLoopbackAddress) { val host=a.hostAddress; if(host!=null) return host }
+        val candidates=mutableListOf<Pair<Int,String>>()
+        val nets=NetworkInterface.getNetworkInterfaces()
+        while(nets.hasMoreElements()) {
+            val net=nets.nextElement()
+            if(!net.isUp || net.isLoopback) continue
+            val name=net.name.lowercase()
+            val priority=if(name.contains("wlan") || name.contains("wifi") || name.contains("ap") || name.contains("p2p")) 0 else 1
+            val addrs=net.inetAddresses
+            while(addrs.hasMoreElements()) {
+                val address=addrs.nextElement()
+                if(address is java.net.Inet4Address && address.isSiteLocalAddress && !address.isLoopbackAddress) {
+                    address.hostAddress?.let { candidates.add(priority to it) }
+                }
             }
         }
-        error("Connect both phones to the same Wi-Fi or hotspot first.")
+        return candidates.sortedBy { it.first }.firstOrNull()?.second
+            ?: error("Connect both phones to the same Wi-Fi or hotspot first.")
     }
 
     fun qr(text: String): Bitmap {
@@ -172,7 +178,12 @@ object DeviceTransfer {
     }
 
     fun send(url:String, token:String, payload:JSONObject) {
-        val c=java.net.URL(url).openConnection() as java.net.HttpURLConnection
+        val endpoint=java.net.URL(url)
+        require(endpoint.protocol=="http" && endpoint.path=="/transfer" && endpoint.userInfo==null) { "QR destination is not a valid local transfer endpoint." }
+        require(endpoint.host.matches(Regex("\\d{1,3}(\\.\\d{1,3}){3}"))) { "Transfer QR must contain a local IPv4 address." }
+        val destination=java.net.InetAddress.getByName(endpoint.host)
+        require(destination is java.net.Inet4Address && destination.isSiteLocalAddress && !destination.isLoopbackAddress) { "Transfer destination must be on a private local network." }
+        val c=endpoint.openConnection() as java.net.HttpURLConnection
         try {
             c.requestMethod="POST"; c.connectTimeout=12000; c.readTimeout=30000; c.doOutput=true
             c.setRequestProperty("Content-Type","application/json"); c.setRequestProperty("Authorization","Bearer "+token)
