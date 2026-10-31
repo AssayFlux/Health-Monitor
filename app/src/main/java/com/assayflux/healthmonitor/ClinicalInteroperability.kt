@@ -63,6 +63,9 @@ object ClinicalInteroperability {
                 effective_start TEXT, effective_end TEXT, raw_json TEXT NOT NULL,
                 review_state TEXT NOT NULL DEFAULT 'pending', target_member_id INTEGER,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)""")
+            sql.execSQL("CREATE TABLE IF NOT EXISTS privacy_consents(consent_key TEXT PRIMARY KEY, granted INTEGER NOT NULL, policy_version TEXT NOT NULL, decided_at TEXT NOT NULL, source TEXT NOT NULL DEFAULT 'in_app')")
+            sql.execSQL("CREATE TABLE IF NOT EXISTS access_audit(audit_id INTEGER PRIMARY KEY AUTOINCREMENT, event_type TEXT NOT NULL, subject_type TEXT, subject_id TEXT, outcome TEXT NOT NULL, details TEXT, occurred_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
+            sql.execSQL("CREATE INDEX IF NOT EXISTS idx_access_audit_time ON access_audit(occurred_at)")
             sql.execSQL("""CREATE TABLE IF NOT EXISTS terminology_mappings(
                 source_system TEXT NOT NULL, source_code TEXT NOT NULL, target_system TEXT NOT NULL,
                 target_code TEXT NOT NULL, target_display TEXT NOT NULL, jurisdiction TEXT,
