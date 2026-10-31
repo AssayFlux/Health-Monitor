@@ -47,3 +47,57 @@ jobs:
           gradle-version: "8.13"
       - name: Android lint and source compilation checks
         run: gradle :app:lintDebug --no-daemon
+      - name: Audit SQLCipher runtime dependency graph
+        run: |
+          gradle :app:dependencies --configuration debugRuntimeClasspath --no-daemon > /tmp/android-runtime-dependencies.txt
+          python - <<'PY'
+          from pathlib import Path
+
+          dependencies = Path("/tmp/android-runtime-dependencies.txt").read_text()
+          required = (
+              "net.zetetic:sqlcipher-android:4.19.1",
+              "androidx.sqlite:sqlite:2.7.0",
+          )
+          for coordinate in required:
+              if coordinate not in dependencies:
+                  raise SystemExit(f"Required SQLCipher dependency missing: {coordinate}")
+
+          forbidden = (
+              "net.zetetic:android-database-sqlcipher",
+              "net.sqlcipher:sqlcipher",
+              "net.sqlcipher:android-database-sqlcipher",
+          )
+          for coordinate in forbidden:
+              if coordinate in dependencies:
+                  raise SystemExit(f"Conflicting legacy SQLCipher dependency detected: {coordinate}")
+
+          print("SQLCipher dependency graph is consistent.")
+          PY
+      - name: Build debug APK and instrumentation APK
+        run: gradle :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon
+      - name: Verify ARM64 SQLCipher native library is packaged
+        run: |
+          python - <<'PY'
+          from zipfile import ZipFile
+
+          apk = "app/build/outputs/apk/debug/app-debug.apk"
+          required = "lib/arm64-v8a/libsqlcipher.so"
+          with ZipFile(apk) as archive:
+              native_entries = sorted(
+                  name for name in archive.namelist()
+                  if name.startswith("lib/") and name.endswith(".so")
+              )
+              print("\\n".join(native_entries))
+              if required not in native_entries:
+                  raise SystemExit(f"APK is missing required native library: {required}")
+          print("ARM64 SQLCipher native library is present in the APK.")
+          PY
+      - name: Run Android SQLCipher runtime and instrumentation tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: gradle :app:connectedDebugAndroidTest --no-daemon
