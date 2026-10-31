@@ -45,7 +45,6 @@ jobs:
 
   android-build-and-device-tests:
     name: "5 · Debug/release APK, AAB and Android tests"
-    # Use the stable hosted image for emulator/ADB compatibility.
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -84,7 +83,9 @@ jobs:
           emulator-boot-timeout: 900
           disable-animations: true
           script: |
-            set -euo pipefail
+            # The emulator runner executes this script through /bin/sh.
+            # Keep it POSIX-compatible: pipefail is a Bash-only option.
+            set -eu
             adb start-server
             adb wait-for-device
             for attempt in $(seq 1 120); do
