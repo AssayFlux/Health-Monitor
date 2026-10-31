@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -172,9 +173,9 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
    Toast.makeText(context,"PDF exported",Toast.LENGTH_LONG).show()
   }catch(e:Exception){Toast.makeText(context,"PDF export failed: ${e.message}",Toast.LENGTH_LONG).show()}}
  }
- Scaffold(containerColor=Ivory,floatingActionButton={ExtendedFloatingActionButton(onClick={pdfLauncher.launch("Health-Monitor-Report.pdf")},text={Text("Export PDF")},icon={Icon(Icons.Default.PictureAsPdf,null)})},bottomBar={NavigationBar(containerColor=Cream){listOf("Home","Records","Assistant","Analytics","More").forEach{t->val selected=when(t){"Records"->tab in setOf("Records","People","Vitals","Reports","Medicines","History","Tests");"More"->tab in setOf("More","Reminders","Interop","Received & Shared","Privacy","Settings");else->tab==t};NavigationBarItem(selected=selected,onClick={tab=t},icon={Icon(when(t){"Home"->Icons.Default.Home;"Records"->Icons.Default.FolderOpen;"Assistant"->Icons.Default.SmartToy;"Analytics"->Icons.Default.Analytics;else->Icons.Default.MoreHoriz},null)},label={Text(t)})}}}){p->
+ Scaffold(containerColor=Ivory,floatingActionButton={if(tab !in setOf("Assistant","Records","More")) ExtendedFloatingActionButton(onClick={pdfLauncher.launch("Health-Monitor-Report.pdf")},text={Text("Export PDF")},icon={Icon(Icons.Default.PictureAsPdf,null)})},bottomBar={NavigationBar(containerColor=Cream){listOf("Home","Records","Assistant","Analytics","More").forEach{t->val selected=when(t){"Records"->tab in setOf("Records","People","Vitals","Reports","Medicines","History","Tests");"More"->tab in setOf("More","Reminders","Interop","Received & Shared","Privacy","Settings");else->tab==t};NavigationBarItem(selected=selected,onClick={tab=t},icon={Icon(when(t){"Home"->Icons.Default.Home;"Records"->Icons.Default.FolderOpen;"Assistant"->Icons.Default.SmartToy;"Analytics"->Icons.Default.Analytics;else->Icons.Default.MoreHoriz},null)},label={Text(t)})}}}){p->
   Column(Modifier.fillMaxSize().padding(p)){
-   Row(Modifier.fillMaxWidth().padding(horizontal=20.dp, vertical=14.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text("HEALTH MONITOR",fontSize=11.sp,letterSpacing=2.sp,color=Forest,fontWeight=FontWeight.Bold);Text(tab,fontSize=27.sp,color=Ink,fontWeight=FontWeight.SemiBold)};Surface(color=Forest,shape=RoundedCornerShape(50)){Icon(Icons.Default.Favorite, null,tint=Color.White,modifier=Modifier.padding(11.dp).size(20.dp))}}
+   Row(Modifier.fillMaxWidth().padding(horizontal=20.dp, vertical=14.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text("HEALTH MONITOR",fontSize=11.sp,letterSpacing=2.sp,color=Forest,fontWeight=FontWeight.Bold);Text(tab,fontSize=24.sp,color=Ink,fontWeight=FontWeight.SemiBold,maxLines=1,softWrap=false,overflow=TextOverflow.Ellipsis)};Surface(color=Forest,shape=RoundedCornerShape(50)){Icon(Icons.Default.Favorite, null,tint=Color.White,modifier=Modifier.padding(11.dp).size(20.dp))}}
    when(tab){
     "Home"->LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
      item{Card(colors=CardDefaults.cardColors(containerColor=Forest),shape=RoundedCornerShape(24.dp)){Column(Modifier.fillMaxWidth().padding(22.dp)){Text("YOUR FAMILY HEALTH",color=Sage,fontSize=11.sp,fontWeight=FontWeight.Bold,letterSpacing=1.5.sp);Text("A clearer view of everyday wellbeing.",fontSize=25.sp,color=Color.White,fontWeight=FontWeight.SemiBold);Spacer(Modifier.height(8.dp));Text("Private records stored on this device.",color=Color.White.copy(.8f))}}}
