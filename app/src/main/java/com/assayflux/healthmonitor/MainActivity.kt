@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.app.DatePickerDialog
 import java.util.Calendar
-import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.Toast
@@ -88,31 +88,30 @@ class HealthDb(c:Context, passphrase:ByteArray):SQLiteOpenHelper(c,"health_monit
  fun count(table:String)=rows("SELECT COUNT(*) FROM $table").firstOrNull()?.firstOrNull()?.toIntOrNull()?:0
 }
 
-class MainActivity:ComponentActivity(){
+class MainActivity:FragmentActivity(){
  override fun onCreate(savedInstanceState:Bundle?){
   super.onCreate(savedInstanceState)
   if(!Python.isStarted()) Python.start(AndroidPlatform(this))
   setContent {
    MaterialTheme(colorScheme=lightColorScheme(primary=Forest,background=Ivory,surface=Cream,onSurface=Ink,secondary=Clay)) {
-    LocalAuthGate { AuthenticatedDatabaseHost() }
+    LocalAuthGate { passphrase -> AuthenticatedDatabaseHost(passphrase) }
    }
   }
  }
 }
 
 @Composable
-private fun AuthenticatedDatabaseHost() {
+private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
  val context=androidx.compose.ui.platform.LocalContext.current
  var db by remember { mutableStateOf<HealthDb?>(null) }
  var error by remember { mutableStateOf("") }
  LaunchedEffect(Unit) {
   try {
    val opened=withContext(Dispatchers.IO) {
-    val key=LocalKeyVault().getOrCreateDatabasePassphrase(context)
     try {
-     EncryptedDatabaseMigration.migrateIfNeeded(context,key)
-     HealthDb(context,key).also { ClinicalInteroperability.ensureSchema(it) }
-    } finally { key.fill(0) }
+     EncryptedDatabaseMigration.migrateIfNeeded(context,passphrase)
+     HealthDb(context,passphrase).also { ClinicalInteroperability.ensureSchema(it) }
+    } finally { passphrase.fill(0) }
    }
    db=opened
   } catch(e:Exception) { error=e.message ?: "Database migration failed." }
