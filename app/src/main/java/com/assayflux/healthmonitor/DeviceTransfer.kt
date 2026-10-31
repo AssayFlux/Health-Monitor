@@ -11,6 +11,7 @@ import org.json.JSONObject
 import java.net.NetworkInterface
 import java.security.SecureRandom
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
 import android.util.Base64
 
 object DeviceTransfer {
@@ -159,11 +160,11 @@ object DeviceTransfer {
     class Server(token: String, private val onReceive:(Pending)->Unit): NanoHTTPD("0.0.0.0",0) {
         private val key=token
         private val expiresAt=System.currentTimeMillis()+5*60*1000
-        @Volatile private var used=false
+        private val used=AtomicBoolean(false)
         override fun serve(session:IHTTPSession): Response {
             if(session.method!=Method.POST || session.uri!="/transfer") return newFixedLengthResponse(Response.Status.NOT_FOUND,"text/plain","Not found")
             if(System.currentTimeMillis()>expiresAt) return newFixedLengthResponse(Response.Status.GONE,"text/plain","Pairing expired")
-            if(used) return newFixedLengthResponse(Response.Status.GONE,"text/plain","Pairing expired")
+            if(used.get()) return newFixedLengthResponse(Response.Status.GONE,"text/plain","Pairing expired")
             if(session.headers["authorization"]!="Bearer "+key) return newFixedLengthResponse(Response.Status.UNAUTHORIZED,"text/plain","Invalid pairing token")
             return try {
                 val declaredLength=session.headers["content-length"]?.toLongOrNull() ?: 0L
@@ -171,7 +172,9 @@ object DeviceTransfer {
                 val files=HashMap<String,String>(); session.parseBody(files)
                 val body=files["postData"] ?: error("Empty transfer")
                 require(body.length<=14000000) { "Transfer exceeds size limit." }
-                val p=validate(JSONObject(body)); used=true; onReceive(p)
+                val p=validate(JSONObject(body))
+                if(!used.compareAndSet(false,true)) return newFixedLengthResponse(Response.Status.GONE,"text/plain","Pairing already used")
+                onReceive(p)
                 newFixedLengthResponse(Response.Status.OK,"text/plain","Transfer received. Review it on the receiving phone.")
             } catch(e:Exception) { newFixedLengthResponse(Response.Status.BAD_REQUEST,"text/plain",e.message ?: "Invalid transfer") }
         }
@@ -179,7 +182,7 @@ object DeviceTransfer {
 
     fun send(url:String, token:String, payload:JSONObject) {
         val endpoint=java.net.URL(url)
-        require(endpoint.protocol=="http" && endpoint.path=="/transfer" && endpoint.userInfo==null && endpoint.port in 1024..65535) { "QR destination is not a valid local transfer endpoint." }
+        require(endpoint.protocol=="http" && endpoint.path=="/transfer" && endpoint.userInfo==null && endpoint.query==null && endpoint.ref==null && endpoint.port in 1024..65535) { "QR destination is not a valid local transfer endpoint." }
         require(endpoint.host.matches(Regex("\\d{1,3}(\\.\\d{1,3}){3}"))) { "Transfer QR must contain a local IPv4 address." }
         val destination=java.net.InetAddress.getByName(endpoint.host)
         require(destination is java.net.Inet4Address && destination.isSiteLocalAddress && !destination.isLoopbackAddress) { "Transfer destination must be on a private local network." }
