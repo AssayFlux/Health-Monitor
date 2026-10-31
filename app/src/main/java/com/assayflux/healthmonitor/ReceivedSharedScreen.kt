@@ -1,6 +1,8 @@
 package com.assayflux.healthmonitor
 
 import android.content.Context
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,6 +15,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.Dispatchers
@@ -66,6 +70,10 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
    status="Paired with receiver. Choose a member to send."
   } catch(_:Exception){status="Invalid Health Monitor QR code."}
  }
+ val cameraPermission=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){ granted ->
+  if(granted) scanner.launch(ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE).setPrompt("Scan receiver QR").setBeepEnabled(false))
+  else status="Camera permission is required to scan a transfer QR."
+ }
  Column(Modifier.fillMaxSize().padding(16.dp),verticalArrangement=Arrangement.spacedBy(9.dp)) {
   Card(colors=CardDefaults.cardColors(containerColor=Forest)){Column(Modifier.fillMaxWidth().padding(14.dp)){
    Text("THIS DEVICE",color=Sage,fontSize=11.sp);Text(deviceId,color=androidx.compose.ui.graphics.Color.White)
@@ -85,7 +93,7 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
      status="Receiver ready. Scan this one-time QR from the sending phone."
     }catch(e:Exception){status=e.message?:"Could not start receiver."}
    },modifier=Modifier.weight(1f)){Text("Receive via QR")}
-   OutlinedButton(onClick={scanner.launch(ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE).setPrompt("Scan receiver QR").setBeepEnabled(false))},modifier=Modifier.weight(1f)){Text("Scan to send")}
+   OutlinedButton(onClick={if(ContextCompat.checkSelfPermission(context,Manifest.permission.CAMERA)==PackageManager.PERMISSION_GRANTED)scanner.launch(ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE).setPrompt("Scan receiver QR").setBeepEnabled(false)) else cameraPermission.launch(Manifest.permission.CAMERA)},modifier=Modifier.weight(1f)){Text("Scan to send")}
   }
   qr?.let{bitmap->Card(colors=CardDefaults.cardColors(containerColor=androidx.compose.ui.graphics.Color.White)){
    Column(Modifier.fillMaxWidth().padding(10.dp),horizontalAlignment=androidx.compose.ui.Alignment.CenterHorizontally){
