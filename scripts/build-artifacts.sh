@@ -8,6 +8,11 @@ command -v gradle >/dev/null 2>&1 || {
   echo "Gradle 8.13+ and Android SDK 36 are required." >&2
   exit 2
 }
+GRADLE_VERSION="$(gradle --version | awk '/^Gradle / { print $2; exit }')"
+if [[ -z "$GRADLE_VERSION" ]] || [[ "$(printf '%s\\n' "8.13" "$GRADLE_VERSION" | sort -V | head -n1)" != "8.13" ]]; then
+  echo "Gradle 8.13 or newer is required (found: ${GRADLE_VERSION:-unknown})." >&2
+  exit 2
+fi
 
 BUILD_DEBUG="${BUILD_DEBUG:-true}"
 BUILD_RELEASE="${BUILD_RELEASE:-true}"
