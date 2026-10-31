@@ -46,7 +46,7 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
  var pending by remember{mutableStateOf<DeviceTransfer.Pending?>(null)}
  var pendingHistoryId by remember{mutableStateOf("")}
  var confirm by remember{mutableStateOf(false)}
- var url by remember{mutableStateOf("")};var token by remember{mutableStateOf("")};var receiverId by remember{mutableStateOf("paired-receiver")};var receiverName by remember{mutableStateOf("Receiving device")}
+ var url by remember{mutableStateOf("")};var token by remember{mutableStateOf("")};var encryptionSecret by remember{mutableStateOf("")};var receiverId by remember{mutableStateOf("paired-receiver")};var receiverName by remember{mutableStateOf("Receiving device")}
  var status by remember{mutableStateOf("")};var busy by remember{mutableStateOf(false)}
  var deleteId by remember{mutableStateOf<String?>(null)}
  DisposableEffect(server){onDispose{try{server?.stop()}catch(_:Exception){}}}
@@ -66,7 +66,7 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
  }
  val scanner=rememberLauncherForActivityResult(ScanContract()){ result->
   if(!result.contents.isNullOrBlank()) try {
-   val data=JSONObject(result.contents);url=data.getString("url");token=data.getString("token");receiverId=data.optString("receiver","paired-receiver");receiverName=data.optString("receiverName","Receiving device")
+   val data=JSONObject(result.contents);url=data.getString("url");token=data.getString("token");encryptionSecret=data.getString("secret");receiverId=data.optString("receiver","paired-receiver");receiverName=data.optString("receiverName","Receiving device")
    status="Paired with receiver. Choose a member to send."
   } catch(_:Exception){status="Invalid Health Monitor QR code."}
  }
@@ -81,7 +81,7 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
   }}
   Text("OFFLINE DEVICE TRANSFER",color=Forest,fontSize=11.sp)
   Text("Connect both phones to the same Wi-Fi or hotspot. Data travels directly over the local network, without cloud storage.",color=Ink.copy(.7f),fontSize=12.sp)
-  Text("Transfer data is not encrypted. Use a trusted private Wi-Fi or hotspot; devices on the same network may be able to read the traffic.",color=Clay,fontSize=12.sp)
+  Text("Transfer payloads are protected with AES-256-GCM. The encryption key is exchanged in the scanned QR and is not sent in the network request. Use a trusted private Wi-Fi or hotspot.",color=Clay,fontSize=12.sp)
   Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
    Button(onClick={
     if(pending!=null){status="Integrate or discard the current received transfer before receiving another."}
@@ -94,7 +94,7 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
      }
      s.start();server=s
      val address="http://"+DeviceTransfer.ip()+":"+s.listeningPort+"/transfer"
-     qr=DeviceTransfer.qrBitmap(JSONObject().put("url",address).put("token",key).put("receiver",deviceId).put("receiverName",android.os.Build.MODEL?:"Android device").toString())
+     qr=DeviceTransfer.qrBitmap(JSONObject().put("url",address).put("token",key).put("secret",secret).put("receiver",deviceId).put("receiverName",android.os.Build.MODEL?:"Android device").toString())
      status="Receiver ready. Scan this one-time QR from the sending phone."
     }catch(e:Exception){status=e.message?:"Could not start receiver."}
    },modifier=Modifier.weight(1f)){Text("Receive via QR")}
@@ -130,9 +130,9 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
      busy=true;status="Sending over local Wi-Fi…"
      scope.launch{try{
       val data=withContext(Dispatchers.IO){DeviceTransfer.export(db,selected.toLong(),deviceId,android.os.Build.MODEL?:"Android")}
-      withContext(Dispatchers.IO){DeviceTransfer.send(url,token,data)}
+      withContext(Dispatchers.IO){DeviceTransfer.send(url,token,encryptionSecret,data)}
       db.recordTransfer("Shared",receiverId,receiverName,"Sent",data.optInt("count"),"Member: "+data.getJSONObject("member").optString("name"))
-      status="Sent. The receiving phone must confirm integration.";url="";token="";onChanged()
+      status="Sent securely. The receiving phone must confirm integration.";url="";token="";encryptionSecret="";onChanged()
      }catch(e:Exception){status=e.message?:"Transfer failed."}finally{busy=false}}
     },modifier=Modifier.fillMaxWidth()){Text(if(busy)"Sending…" else "Send selected member")}
    }
@@ -159,7 +159,7 @@ fun ReceivedSharedScreen(db:HealthDb,refreshToken:Int,onChanged:()->Unit) {
   }
  }
  if(confirm)AlertDialog(onDismissRequest={confirm=false},title={Text("Integrate as a separate member?")},
-  text={Text("This imports the received records into a new profile and does not overwrite or merge existing members. Transfer payload is plain local-network data, as requested.")},
+  text={Text("This imports the received records into a new profile and does not overwrite or merge existing members. The transfer payload is encrypted with AES-256-GCM before it leaves this device.")},
   confirmButton={TextButton(onClick={scope.launch{try{val item=pending ?: error("No pending transfer to integrate.");val historyId=pendingHistoryId;withContext(Dispatchers.IO){DeviceTransfer.integrate(db,item,historyId)};pending=null;pendingHistoryId="";confirm=false;status="Imported as a separate member profile.";onChanged()}catch(e:Exception){confirm=false;status="Import failed: "+(e.message?:"database error")}}}){Text("Integrate")}},
   dismissButton={TextButton(onClick={confirm=false}){Text("Cancel")}})
  deleteId?.let{id->AlertDialog(onDismissRequest={deleteId=null},title={Text("Delete history entry?")},text={Text("Only history is deleted; imported health data remains.")},confirmButton={TextButton(onClick={db.deleteTransfer(id);db.discardPendingTransfer(id);if(pendingHistoryId==id){pending=null;pendingHistoryId=""};deleteId=null;onChanged()}){Text("Delete")}},dismissButton={TextButton(onClick={deleteId=null}){Text("Cancel")}})}
