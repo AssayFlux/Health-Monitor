@@ -106,6 +106,7 @@ private fun AuthenticatedDatabaseHost(passphrase: ByteArray) {
  val context=androidx.compose.ui.platform.LocalContext.current
  var db by remember { mutableStateOf<HealthDb?>(null) }
  var error by remember { mutableStateOf("") }
+ DisposableEffect(db) { onDispose { db?.close() } }
  LaunchedEffect(Unit) {
   try {
    val opened=withContext(Dispatchers.IO) {
