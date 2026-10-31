@@ -7,7 +7,10 @@ import com.google.zxing.MultiFormatWriter
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.NetworkInterface
-import java.security.SecureRandom\nimport javax.crypto.Cipher\nimport javax.crypto.spec.GCMParameterSpec\nimport javax.crypto.spec.SecretKeySpec
+import java.security.SecureRandom
+import javax.crypto.Cipher
+import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.SecretKeySpec
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import android.util.Base64
