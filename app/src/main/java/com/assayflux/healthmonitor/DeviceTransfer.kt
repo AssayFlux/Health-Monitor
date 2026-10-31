@@ -28,7 +28,7 @@ object DeviceTransfer {
             val addrs = net.inetAddresses
             while (addrs.hasMoreElements()) {
                 val a = addrs.nextElement()
-                if (a is java.net.Inet4Address && !a.isLoopbackAddress) return a.hostAddress ?: continue
+                if (a is java.net.Inet4Address && !a.isLoopbackAddress) { val host=a.hostAddress; if(host!=null) return host }
             }
         }
         error("Connect both phones to the same Wi-Fi or hotspot first.")
