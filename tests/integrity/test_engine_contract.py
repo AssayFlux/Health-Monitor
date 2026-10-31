@@ -23,9 +23,7 @@ class EngineContractTests(unittest.TestCase):
         self.assertEqual(result["ldl"], 111)
         self.assertEqual(result["non_hdl"], 150)
         self.assertNotIn("vldl", result)
-        estimated = health_engine.autocalc_labs(
-            {"hdl": 50, "triglycerides": 150}
-        )
+        estimated = health_engine.autocalc_labs({"hdl": 50, "triglycerides": 150})
         self.assertEqual(estimated["vldl"], 30)
 
     def test_lab_calculation_does_not_divide_by_zero(self):
