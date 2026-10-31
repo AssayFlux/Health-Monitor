@@ -35,16 +35,16 @@ fun MemberManagementScreen(db: HealthDb, refreshToken: Int, onChanged: () -> Uni
         var name by remember(row) { mutableStateOf(row[1]) }
         var sex by remember(row) { mutableStateOf(row[2]) }
         var blood by remember(row) { mutableStateOf(row[3]) }
-        var dob by remember(row) { mutableStateOf(row[4]) }
+        var dob by remember(row) { mutableStateOf(row[4]) }\n        var height by remember(row) { mutableStateOf(row.getOrElse(5) { "" }) }
         AlertDialog(onDismissRequest = { editing = null }, title = { Text("Edit family member") },
             text = { Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 OutlinedTextField(name, { name = it }, label = { Text("Name") })
                 OutlinedTextField(dob, { dob = it }, label = { Text("Date of birth") })
                 OutlinedTextField(sex, { sex = it }, label = { Text("Sex") })
-                OutlinedTextField(blood, { blood = it }, label = { Text("Blood group") })
+                OutlinedTextField(blood, { blood = it }, label = { Text("Blood group") })\n                OutlinedTextField(height, { height = it }, label = { Text("Height (cm)") })
             } },
             confirmButton = { TextButton(enabled = name.isNotBlank(), onClick = {
-                db.updateMember(row[0].toLong(), name.trim(), dob.trim(), sex.trim(), blood.trim(), "")
+                db.updateMember(row[0].toLong(), name.trim(), dob.trim(), sex.trim(), blood.trim(), height.trim())
                 editing = null; onChanged()
             }) { Text("Save") } },
             dismissButton = { TextButton(onClick = { editing = null }) { Text("Cancel") } })
