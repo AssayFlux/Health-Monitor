@@ -73,9 +73,14 @@ object DeviceTransfer {
         val m=json.optJSONObject("member") ?: error("Member details missing.")
         require(m.optString("name").isNotBlank()) { "Member name is missing." }
         val r=json.optJSONObject("records") ?: error("Health records missing.")
-        tables.forEach { require((r.optJSONArray(it)?.length() ?: 0) <= 100000) { "Too many records in $it." } }
+        var total=0
+        tables.forEach { table ->
+            val n=r.optJSONArray(table)?.length() ?: 0
+            require(n<=100000) { "Too many records in $table." }
+            total+=n
+        }
         val s=json.optJSONObject("sender") ?: JSONObject()
-        return Pending(json,s.optString("id","unknown"),s.optString("name","Other device"),json.optInt("count"))
+        return Pending(json,s.optString("id","unknown"),s.optString("name","Other device"),total)
     }
 
     /** Atomic import into a brand-new member; existing profiles are never modified. */
@@ -155,6 +160,8 @@ object DeviceTransfer {
             if(used) return newFixedLengthResponse(Response.Status.GONE,"text/plain","Pairing expired")
             if(session.headers["authorization"]!="Bearer "+key) return newFixedLengthResponse(Response.Status.UNAUTHORIZED,"text/plain","Invalid pairing token")
             return try {
+                val declaredLength=session.headers["content-length"]?.toLongOrNull() ?: 0L
+                require(declaredLength in 1..14_000_000) { "Missing or oversized transfer body." }
                 val files=HashMap<String,String>(); session.parseBody(files)
                 val body=files["postData"] ?: error("Empty transfer")
                 require(body.length<=14000000) { "Transfer exceeds size limit." }
