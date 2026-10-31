@@ -183,10 +183,16 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
         sections += "APPOINTMENTS: " + db.rows(
             "SELECT title,scheduled_at,COALESCE(location,''),COALESCE(notes,'') FROM appointments WHERE member_id=$memberId ORDER BY scheduled_at DESC LIMIT 20"
         ).joinToString("; ") { it.joinToString(", ") }
+        sections += "INTEROPERABLE CLINICAL RECORDS: " + db.rows(
+            "SELECT resource_type,COALESCE(code_display,''),COALESCE(status,''),COALESCE(effective_start,''),COALESCE(effective_end,''),COALESCE(value_numeric,value_text,''),COALESCE(unit_code,''),verification_status,source_system FROM clinical_records WHERE member_id=$memberId ORDER BY recorded_at DESC LIMIT 40"
+        ).joinToString("; ") { it.joinToString(", ") }
+        sections += "DOCUMENTS FOR REVIEW (OCR TEXT IS UNVERIFIED): " + db.rows(
+            "SELECT display_name,COALESCE(mime_type,''),COALESCE(extracted_text,''),review_state FROM clinical_documents WHERE member_id=$memberId ORDER BY created_at DESC LIMIT 10"
+        ).joinToString("; ") { it.joinToString(", ") }
         sections += "ACTIVE REMINDERS: " + db.rows(
             "SELECT label,kind,COALESCE(due_at,''),COALESCE(timezone_id,'') FROM reminders WHERE member_id=$memberId AND active=1 ORDER BY due_at LIMIT 30"
         ).joinToString("; ") { it.joinToString(", ") }
-        return sections.joinToString("\n").take(18_000)
+        return sections.joinToString("\n").take(10_000)
     }
 
     fun loadModel() {
@@ -243,7 +249,7 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
         generating = true
         scope.launch {
             try {
-                val history = messages.takeLast(8).joinToString("\n") {
+                val history = messages.takeLast(6).joinToString("\n") {
                     (if (it.fromUser) "User: " else "Assistant: ") + it.text
                 }
                 val health = withContext(Dispatchers.IO) { buildHealthContext() }
