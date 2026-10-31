@@ -28,6 +28,7 @@ Health Monitor brings personal health observations, laboratory reports, medicine
 The application is designed around a local-first family health record:
 
 - **People and profiles** — maintain separate records for family members.
+- **Medical history** — capture member-linked conditions, allergies, procedures, immunisations, family history, and encounter notes with dates, status, optional codes, and source notes.
 - **Vitals** — record blood pressure (including left/right arm readings), pulse, weight, height, oxygen saturation, temperature, dates, and notes.
 - **Laboratory reports** — store named reports and structured clinical test observations, including units and reference intervals where supplied.
 - **Medicines** — maintain medicine names, dose details, dates, and notes.
@@ -123,6 +124,7 @@ The local database currently contains these principal tables:
 | `anthropometry` | Dated anthropometric measurements |
 | `appointments` | Scheduled appointment records |
 | `reminders` | Reminder definitions and scheduling metadata |
+| `clinical_history` | Member-linked conditions, allergies, procedures, immunisations, family history, and encounters |
 
 Records are stored locally in the app's private database. The schema is versioned and the legacy plaintext-to-SQLCipher migration includes integrity and per-table row-count checks before replacing the original database. The migration retains a recoverable copy of the original database until validation succeeds.
 
@@ -191,6 +193,7 @@ Do not infer that a workflow is complete simply because its helper class or depe
 **Implemented or present in the current codebase**
 
 - Native Kotlin/Jetpack Compose application and local health-record screens.
+- Structured family medical-history capture and browsing (conditions, allergies, procedures, immunisations, family history, encounters).
 - SQLCipher-backed database helper and Keystore-wrapped database passphrase.
 - Recoverable legacy database migration with integrity and table row-count validation.
 - Local user-ID/password gate and authentication-throttling foundations.
@@ -203,6 +206,7 @@ Do not infer that a workflow is complete simply because its helper class or depe
 
 - BiometricPrompt-to-SQLCipher-key integration using an authenticated cryptographic object.
 - Backup, recovery, and sharing (deferred for a separate threat-modelled redesign).
+- Editing/deleting history records, comprehensive profile lifecycle, and selective report filters remain in Stage 1.
 - Import preview, incoming-member mapping, duplicate-resolution choices, and transactional record merge.
 - Selective profile/category/date filtering for PDF export.
 - Full medicine/appointment-linked recurring reminder behavior and notification onboarding.
