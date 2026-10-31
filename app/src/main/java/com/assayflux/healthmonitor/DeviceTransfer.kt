@@ -61,7 +61,7 @@ object DeviceTransfer {
             db.readableDatabase.rawQuery("SELECT * FROM $table WHERE member_id=?",arrayOf(memberId.toString())).use { c ->
                 while(c.moveToNext()) {
                     val row=JSONObject()
-                    for(i in 0 until c.columnCount) if(c.getColumnName(i)!="member_id") {
+                    for(i in 0 until c.columnCount) if(c.getColumnName(i)!="member_id" && !(table=="clinical_documents" && c.getColumnName(i)=="content_uri")) {
                         if(c.isNull(i)) row.put(c.getColumnName(i),JSONObject.NULL) else row.put(c.getColumnName(i),c.getString(i))
                     }
                     arr.put(row); count++
@@ -179,7 +179,7 @@ object DeviceTransfer {
 
     fun send(url:String, token:String, payload:JSONObject) {
         val endpoint=java.net.URL(url)
-        require(endpoint.protocol=="http" && endpoint.path=="/transfer" && endpoint.userInfo==null) { "QR destination is not a valid local transfer endpoint." }
+        require(endpoint.protocol=="http" && endpoint.path=="/transfer" && endpoint.userInfo==null && endpoint.port in 1024..65535) { "QR destination is not a valid local transfer endpoint." }
         require(endpoint.host.matches(Regex("\\d{1,3}(\\.\\d{1,3}){3}"))) { "Transfer QR must contain a local IPv4 address." }
         val destination=java.net.InetAddress.getByName(endpoint.host)
         require(destination is java.net.Inet4Address && destination.isSiteLocalAddress && !destination.isLoopbackAddress) { "Transfer destination must be on a private local network." }
