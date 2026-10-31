@@ -32,14 +32,18 @@ class BiometricDatabaseKey(private val context: Context) {
         private const val AAD = "HealthMonitor/SQLCipher/biometric-envelope/v1"
     }
 
-    fun isEnrolled(): Boolean =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).contains(ENVELOPE) &&
-            loadKey() != null
+    fun isEnrolled(): Boolean = try {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).contains(ENVELOPE) && loadKey() != null
+    } catch (_: Exception) { false }
 
     @Synchronized
     fun enrollmentCipher(): Cipher {
         require(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) { "Android Keystore authentication is unavailable." }
-        val key = loadKey() ?: generateKey()
+        val key = try { loadKey() } catch (_: Exception) {
+            val store = KeyStore.getInstance(STORE).apply { load(null) }
+            if (store.containsAlias(ALIAS)) store.deleteEntry(ALIAS)
+            null
+        } ?: generateKey()
         return Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key) }
     }
 
