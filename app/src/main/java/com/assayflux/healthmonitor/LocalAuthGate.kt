@@ -17,7 +17,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.fragment.app.FragmentActivity
-import android.widget.Toast
 import javax.crypto.Cipher
 
 /**
@@ -49,16 +48,17 @@ fun LocalAuthGate(content: @Composable (ByteArray) -> Unit) {
     }
 
     fun passwordUnlock() {
+        val suppliedPassword = password.toCharArray()
         try {
             if (createMode) {
                 require(password == confirm) { "Passwords do not match." }
-                credentials.create(userId.trim(), password.toCharArray())
+                credentials.create(userId.trim(), suppliedPassword)
                 policy.recordPasswordResult(true)
                 acceptKey(vault.getOrCreateDatabasePassphrase(context))
             } else {
                 val attempt = policy.beforePasswordAttempt()
                 require(attempt.allowed) { "Too many attempts. Try again in ${attempt.waitSeconds} seconds." }
-                val ok = credentials.verify(userId.trim(), password.toCharArray())
+                val ok = credentials.verify(userId.trim(), suppliedPassword)
                 policy.recordPasswordResult(ok)
                 require(ok) { "Incorrect user ID or password." }
                 acceptKey(vault.getOrCreateDatabasePassphrase(context))
@@ -66,6 +66,7 @@ fun LocalAuthGate(content: @Composable (ByteArray) -> Unit) {
         } catch (e: Exception) {
             error = e.message ?: "Unable to authenticate."
         } finally {
+            suppliedPassword.fill('\u0000')
             password = ""
             confirm = ""
         }
@@ -109,37 +110,6 @@ fun LocalAuthGate(content: @Composable (ByteArray) -> Unit) {
             biometricBusy = false
             error = "Biometric unlock is unavailable. Use your account password. ${e.message}"
         }
-    }
-
-    fun enrollBiometrics() {
-        if (activity == null) { error = "Biometric enrollment requires an Android activity."; return }
-        val key = unlockedKey ?: return
-        try {
-            val cipher = biometric.enrollmentCipher()
-            val prompt = BiometricPrompt(activity, ContextCompat.getMainExecutor(context),
-                object : BiometricPrompt.AuthenticationCallback() {
-                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                        try {
-                            val authenticated = result.cryptoObject?.cipher
-                                ?: throw IllegalStateException("Secure biometric cipher unavailable.")
-                            biometric.persistEnrollment(authenticated, key)
-                            Toast.makeText(context, "Biometric database unlock enabled.", Toast.LENGTH_LONG).show()
-                        } catch (e: Exception) { error = "Could not enable biometric unlock: ${e.message}" }
-                    }
-                    override fun onAuthenticationError(code: Int, message: CharSequence) {
-                        error = "Biometric enrollment cancelled: $message"
-                    }
-                })
-            prompt.authenticate(
-                BiometricPrompt.PromptInfo.Builder()
-                    .setTitle("Enable biometric unlock")
-                    .setSubtitle("Wrap the SQLCipher key with an authentication-required Keystore key")
-                    .setNegativeButtonText("Cancel")
-                    .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-                    .build(),
-                BiometricPrompt.CryptoObject(cipher)
-            )
-        } catch (e: Exception) { error = "Biometric enrollment unavailable: ${e.message}" }
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
