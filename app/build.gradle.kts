@@ -40,6 +40,8 @@ dependencies {
     implementation("androidx.health.connect:connect-client:1.1.0")
     implementation("com.google.mlkit:text-recognition:16.0.1")
     implementation("org.nanohttpd:nanohttpd:2.3.1")
+    // On-device llama.cpp runtime; GGUF model weights are imported separately.
+    implementation("dev.ffmpegkit-maintained:llama-android:0.1.1")
     implementation("com.google.zxing:core:3.5.3")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
