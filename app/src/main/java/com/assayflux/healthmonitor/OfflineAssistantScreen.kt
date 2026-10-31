@@ -30,10 +30,13 @@ import dev.ffmpegkit.llama.Llama
 import dev.ffmpegkit.llama.LlamaConfig
 import dev.ffmpegkit.llama.LlamaModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 private data class AssistantMessage(val text: String, val fromUser: Boolean)
 
@@ -41,6 +44,7 @@ private data class AssistantMessage(val text: String, val fromUser: Boolean)
 fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val screenDisposed = remember { AtomicBoolean(false) }
     val modelDir = remember { (context.getExternalFilesDir("offline-models") ?: File(context.filesDir, "offline-models")).apply { mkdirs() } }
     var modelFile by remember { mutableStateOf(listOf("assistant-import.gguf", "assistant.gguf").map { File(modelDir, it) }.firstOrNull { it.isFile && it.length() > 100_000_000L }) }
     var modelName by remember { mutableStateOf(modelFile?.name ?: "") }
@@ -90,8 +94,13 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
         }
     }
 
-    DisposableEffect(loadedModel) {
-        onDispose { if (loadedModel != null) Llama.releaseModel(loadedModel!!) }
+    val currentModel by rememberUpdatedState(loadedModel)
+    val inferenceActive by rememberUpdatedState(generating)
+    DisposableEffect(Unit) {
+        onDispose {
+            screenDisposed.set(true)
+            if (!inferenceActive) currentModel?.let(Llama::releaseModel)
+        }
     }
 
     val importModel = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -101,6 +110,11 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
                 status = "Copying model into private app storage…"
                 try {
                     val target = File(modelDir, "assistant-import.gguf")
+                    val previousModel = loadedModel
+                    loadedModel = null
+                    if (previousModel != null) withContext(Dispatchers.IO) {
+                        Llama.releaseModel(previousModel)
+                    }
                     withContext(Dispatchers.IO) {
                         context.contentResolver.openInputStream(uri).use { stream ->
                             requireNotNull(stream) { "Could not open selected model file." }
@@ -175,17 +189,23 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
             try {
                 loadedModel?.let(Llama::releaseModel)
                 loadedModel = null
-                val model = withContext(Dispatchers.IO) {
+                val pendingModel = AtomicReference<LlamaModel?>(null)
+                val model = withContext(NonCancellable + Dispatchers.IO) {
                     Llama.loadModel(
                         modelPath = file.absolutePath,
                         config = LlamaConfig(contextSize = 4096, threads = Runtime.getRuntime().availableProcessors().coerceIn(2, 6))
-                    )
+                    ).also { pendingModel.set(it) }
                 }
+                if (screenDisposed.get()) {
+                    pendingModel.getAndSet(null)?.let(Llama::releaseModel)
+                    return@launch
+                }
+                pendingModel.set(null)
                 loadedModel = model
                 status = "Offline model loaded and ready."
             } catch (failure: Throwable) {
                 loadedModel = null
-                status = "Model could not be loaded: ${failure.message ?: "runtime error"}"
+                if (!screenDisposed.get()) status = "Model could not be loaded: ${failure.message ?: "runtime error"}"
             } finally {
                 loadingModel = false
             }
@@ -238,6 +258,7 @@ fun OfflineAssistantScreen(db: HealthDb, refreshToken: Int) {
                 messages += AssistantMessage("I couldn't complete that request: ${failure.message ?: "local inference error"}", false)
             } finally {
                 generating = false
+                if (screenDisposed.get()) Llama.releaseModel(model)
             }
         }
     }
