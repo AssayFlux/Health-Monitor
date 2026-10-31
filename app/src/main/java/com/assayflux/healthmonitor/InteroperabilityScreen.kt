@@ -25,6 +25,9 @@ import org.json.JSONObject
 fun InteroperabilityScreen(db: HealthDb, refreshToken: Int, onChanged: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val allowFhir = remember(refreshToken) { PrivacyAudit.granted(db, "fhir_exchange") }
+    val allowOcr = remember(refreshToken) { PrivacyAudit.granted(db, "document_ocr_local") }
+    val allowHealthConnect = remember(refreshToken) { PrivacyAudit.granted(db, "health_connect_read") }
     val members = remember(refreshToken) { db.members() }
     var selectedMember by remember { mutableStateOf(members.firstOrNull()?.get(0) ?: "") }
     var memberMenu by remember { mutableStateOf(false) }
@@ -100,9 +103,9 @@ fun InteroperabilityScreen(db: HealthDb, refreshToken: Int, onChanged: () -> Uni
                 }
             }
             Button(onClick = { if (selectedMember.isNotBlank()) exportLauncher.launch("health-monitor-${selectedMember}-fhir-r4.json") },
-                enabled = selectedMember.isNotBlank(), modifier = Modifier.fillMaxWidth(),
+                enabled = selectedMember.isNotBlank() && allowFhir, modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = Forest)) { Text("Export FHIR R4 Bundle") }
-            OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/fhir+json", "application/json")) },
+            OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/fhir+json", "application/json")) }, enabled = allowFhir,
                 modifier = Modifier.fillMaxWidth()) { Text("Import FHIR R4 Bundle for review") }
         }
         item {
@@ -113,14 +116,14 @@ fun InteroperabilityScreen(db: HealthDb, refreshToken: Int, onChanged: () -> Uni
             OutlinedButton(onClick = {
                 if (selectedMember.isBlank()) message = "Add a family member first."
                 else healthPermissionsLauncher.launch(HealthConnectBridge.readPermissions)
-            }, enabled = selectedMember.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("Connect / sync Health Connect") }
+            }, enabled = selectedMember.isNotBlank() && allowHealthConnect, modifier = Modifier.fillMaxWidth()) { Text("Connect / sync Health Connect") }
         }
         item {
             HorizontalDivider()
             Text("Document OCR", color = Forest, style = MaterialTheme.typography.titleMedium)
             Text("Choose a clear image of a report. OCR text is only a draft; it is not automatically converted into a diagnosis, result or medicine.",
                 color = Ink.copy(.7f), fontSize = 12.sp)
-            OutlinedButton(onClick = { imageLauncher.launch("image/*") }, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = { imageLauncher.launch("image/*") }, enabled = allowOcr, modifier = Modifier.fillMaxWidth()) {
                 Text("Select report image and extract text")
             }
             if (ocrText.isNotBlank()) {
@@ -167,7 +170,7 @@ fun InteroperabilityScreen(db: HealthDb, refreshToken: Int, onChanged: () -> Uni
         }
         item {
             Text(message, color = Forest, fontSize = 12.sp)
-            Text("Terminology note: LOINC, SNOMED CT, UCUM and ICD identifiers are preserved when supplied. The app does not guess cross-system equivalence or bundle licensed terminology content.",
+            Text("Enable FHIR exchange, Health Connect and OCR separately in the Privacy tab before using these features. Terminology note: LOINC, SNOMED CT, UCUM and ICD identifiers are preserved when supplied. The app does not guess cross-system equivalence or bundle licensed terminology content.",
                 color = Ink.copy(.65f), fontSize = 11.sp)
         }
     }
