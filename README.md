@@ -88,17 +88,17 @@ git clone https://github.com/AssayFlux/Health-Monitor.git
 cd Health-Monitor
 ```
 
-Open the project root in Android Studio, allow Gradle sync to complete, then run the `app` configuration on a supported device or emulator.
+Open the project root in Android Studio, allow Gradle sync to complete, then run the `app` configuration on a supported device or emulator. The repository currently uses a system Gradle installation (8.13 or newer); it does not include a Gradle wrapper.
 
 ### Build and test
 
 ```bash
-./gradlew :app:assembleDebug
-./gradlew :app:testDebugUnitTest
-./gradlew :app:connectedDebugAndroidTest
+gradle :app:assembleDebug
+gradle :app:testDebugUnitTest
+gradle :app:connectedDebugAndroidTest
 ```
 
-The connected test task requires a running emulator or attached device. Routine CI intentionally does not package APK/AAB files or boot an emulator. It runs Python lint/format/syntax checks, security and contract regression tests, maintenance-script validation, and Android lint/source compilation. Build packaging and device testing are deferred until the app feature set is ready. Check the [Actions tab](https://github.com/AssayFlux/Health-Monitor/actions) for the latest branch status.
+The connected test task requires a running emulator or attached device. For a Google Colab build, follow [the Colab build guide](docs/GOOGLE_COLAB_BUILD.md). Routine CI intentionally does not package APK/AAB files or boot an emulator. It runs Python lint/format/syntax checks, security and contract regression tests, maintenance-script validation, and Android lint/source compilation. Build packaging and device testing are deferred until the app feature set is ready. Check the [Actions tab](https://github.com/AssayFlux/Health-Monitor/actions) for the latest branch status.
 
 ## Project structure
 
