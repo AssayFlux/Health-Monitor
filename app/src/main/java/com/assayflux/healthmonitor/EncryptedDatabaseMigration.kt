@@ -53,11 +53,7 @@ object EncryptedDatabaseMigration {
         try {
             // Explicitly create and key the destination before ATTACH. This avoids relying
             // on SQLite ATTACH to create a new file in the app's database directory.
-            CipherDb.openOrCreateDatabase(temp, passphrase, null, null).use { destination ->
-                destination.rawQuery("PRAGMA cipher_integrity_check", null).use { cursor ->
-                    check(cursor.moveToFirst()) { "Could not initialize encrypted migration database." }
-                }
-            }
+            CipherDb.openOrCreateDatabase(temp, passphrase, null, null).use { }
             check(temp.isFile && temp.length() > 0L) { "SQLCipher did not create the migration database." }
 
             val plain = CipherDb.openDatabase(
