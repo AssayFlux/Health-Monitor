@@ -39,6 +39,7 @@ The application is designed around a local-first family health record:
 - **Clinical interoperability** — versioned clinical projection, FHIR R4 Bundle exchange with a human review queue, terminology identifiers and UCUM unit handling.
 - **Health Connect** — permission-based read import for heart rate, steps and body weight.
 - **Document OCR** — on-device extraction from report images, saved as unverified text for manual review.
+- **Authentication and privacy** — password-gated SQLCipher opening, optional strong-biometric key unlock, local consent controls, encrypted application audit events, and screenshot/backup safeguards.
 
 The interface is native Android UI. The project does not use a website runtime or WebView.
 
@@ -55,6 +56,8 @@ The interface is native Android UI. The project does not use a website runtime o
 | Clinical exchange | FHIR R4 JSON mapping and normalized local projection |
 | Device health data | AndroidX Health Connect |
 | Document text extraction | Google ML Kit Text Recognition |
+| Authentication | PBKDF2 local verifier, Android Keystore AES-GCM, BiometricPrompt |
+| Privacy controls | Local consent and encrypted application audit history |
 | Biometric foundation | AndroidX Biometric and a Keystore-backed key helper |
 | Calculation layer | Embedded Python 3.11 via Chaquopy |
 | Build language level | Java 17 / Kotlin JVM target 17 |
@@ -227,7 +230,7 @@ Do not infer that a workflow is complete simply because its helper class or depe
 - Broader migration equivalence and failure-injection tests.
 - Confirmed green CI for the current commit and physical-device validation of security-sensitive flows.
 
-For interoperability capabilities and limitations, see [Stage 2 interoperability notes](docs/STAGE_2_INTEROPERABILITY.md). For the detailed visual system, screen map, acceptance criteria, and delivery notes, see [UI design and delivery specification](docs/UI_DESIGN_AND_DELIVERY.md). The global-readiness work is organised in the [three-stage delivery plan](docs/GLOBAL_READINESS_THREE_STAGE_PLAN.md).
+For interoperability capabilities and limitations, see [Stage 2 interoperability notes](docs/STAGE_2_INTEROPERABILITY.md). For security, privacy, backup threat modelling and release gates, see [Stage 3 security and release readiness](docs/STAGE_3_SECURITY_ACCESSIBILITY_RELEASE.md). For the detailed visual system, screen map, acceptance criteria, and delivery notes, see [UI design and delivery specification](docs/UI_DESIGN_AND_DELIVERY.md). The global-readiness work is organised in the [three-stage delivery plan](docs/GLOBAL_READINESS_THREE_STAGE_PLAN.md).
 
 ## Limitations and responsible use
 
